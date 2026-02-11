@@ -78,6 +78,7 @@ const port = parseInt(process.env.PORT || "3000");
 console.log(`🚀 Server is running on http://localhost:${port}`);
 
 export default {
-  port,
+  port: Number(process.env.PORT) || 3000,
+  hostname: '127.0.0.1', // WAJIB ada agar listen di IPv4 localhost
   fetch: app.fetch,
-};
+}
