@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1770635837318,
+      "tag": "0000_moaning_nightshade",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770693886161,
+      "tag": "0001_curly_vector",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770695260396,
+      "tag": "0002_aberrant_timeslip",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1770714278323,
+      "tag": "0003_flimsy_warhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770720172223,
+      "tag": "0004_bright_blade",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1770721202701,
+      "tag": "0005_romantic_layla_miller",
+      "breakpoints": true
+    }
+  ]
+}
