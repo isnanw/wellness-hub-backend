@@ -57,6 +57,17 @@ usersRouter.post("/login", async (c) => {
   }
 });
 
+// Get all roles
+usersRouter.get("/roles", async (c) => {
+  try {
+    const result = await db.select().from(roles);
+    return c.json({ data: result });
+  } catch (error) {
+    console.error("Error fetching roles:", error);
+    return c.json({ error: "Failed to fetch roles" }, 500);
+  }
+});
+
 // Get all users
 usersRouter.get("/", async (c) => {
   try {
