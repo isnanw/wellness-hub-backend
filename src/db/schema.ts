@@ -99,6 +99,7 @@ export const schedules = pgTable("schedules", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),
   type: scheduleTypeEnum("type").notNull(),
+  district: text("district"),
   location: text("location").notNull(),
   address: text("address"),
   date: timestamp("date").notNull(),

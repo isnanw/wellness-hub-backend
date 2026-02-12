@@ -427,30 +427,41 @@ async function seed() {
   ];
   await db.insert(registrations).values(registrationsData);
 
+  // District Names (25 Distrik Kabupaten Puncak)
+  const districtNames = [
+    "Agandugume", "Amungkalpia", "Beoga", "Beoga Barat", "Beoga Timur",
+    "Bina", "Dervos", "Doufo", "Erelmakawia", "Gome", "Gome Utara",
+    "Ilaga", "Ilaga Utara", "Kembru", "Lambewi", "Mabugi", "Mage'abume",
+    "Ogamanim", "Omukia", "Oneri", "Pogoma", "Sinak", "Sinak Barat",
+    "Wangbe", "Yugumuak",
+  ];
+
   // Seed Schedules
   console.log("Seeding schedules...");
   const schedulesData = [
     {
       id: generateId(),
-      title: "Posyandu Balita RW 01",
+      title: "Posyandu Balita Kampung Kago",
       type: "posyandu" as const,
-      location: "Balai RW 01 Kelurahan A",
-      address: "Jl. Merdeka No. 10",
+      district: "Ilaga",
+      location: "Balai Kampung Kago",
+      address: "Jl. Poros Ilaga",
       date: new Date("2024-01-25"),
       startTime: "08:00",
       endTime: "11:00",
       capacity: 50,
       registered: 35,
       officer: "Bidan Dewi Kartika",
-      description: "Kegiatan Posyandu rutin untuk balita di wilayah RW 01",
+      description: "Kegiatan Posyandu rutin untuk balita di wilayah Kampung Kago, Distrik Ilaga",
       status: "upcoming" as const,
     },
     {
       id: generateId(),
       title: "Imunisasi Campak Rubella",
       type: "imunisasi" as const,
-      location: "Puskesmas Sehat Sejahtera",
-      address: "Jl. Kesehatan No. 1",
+      district: "Ilaga",
+      location: "Puskesmas Ilaga",
+      address: "Jl. Kesehatan No. 1, Ilaga",
       date: new Date("2024-01-26"),
       startTime: "08:00",
       endTime: "12:00",
@@ -462,25 +473,27 @@ async function seed() {
     },
     {
       id: generateId(),
-      title: "Penyuluhan Pencegahan DBD",
+      title: "Penyuluhan Pencegahan Malaria",
       type: "penyuluhan" as const,
-      location: "Aula Kelurahan B",
-      address: "Jl. Sudirman No. 5",
+      district: "Beoga",
+      location: "Aula Distrik Beoga",
+      address: "Jl. Distrik Beoga",
       date: new Date("2024-01-24"),
       startTime: "09:00",
       endTime: "11:00",
       capacity: 75,
       registered: 60,
       officer: "Sanitarian Ahmad Fauzi",
-      description: "Sosialisasi pencegahan demam berdarah dan gerakan 3M Plus",
+      description: "Sosialisasi pencegahan malaria dan pembagian kelambu",
       status: "upcoming" as const,
     },
     {
       id: generateId(),
       title: "Pemeriksaan Kesehatan Lansia",
       type: "pemeriksaan" as const,
-      location: "Posyandu Lansia RW 03",
-      address: "Jl. Pahlawan No. 15",
+      district: "Sinak",
+      location: "Puskesmas Sinak",
+      address: "Jl. Poros Sinak",
       date: new Date("2024-01-23"),
       startTime: "08:00",
       endTime: "10:00",
@@ -494,8 +507,9 @@ async function seed() {
       id: generateId(),
       title: "Vaksinasi COVID-19 Booster",
       type: "vaksinasi" as const,
-      location: "Puskesmas Sehat Sejahtera",
-      address: "Jl. Kesehatan No. 1",
+      district: "Ilaga Utara",
+      location: "Pustu Ilaga Utara",
+      address: "Kampung Mayuberi",
       date: new Date("2024-01-20"),
       startTime: "08:00",
       endTime: "14:00",
@@ -509,8 +523,9 @@ async function seed() {
       id: generateId(),
       title: "Senam Prolanis",
       type: "lainnya" as const,
-      location: "Lapangan Puskesmas",
-      address: "Jl. Kesehatan No. 1",
+      district: "Gome",
+      location: "Halaman Puskesmas Gome",
+      address: "Distrik Gome",
       date: new Date("2024-01-27"),
       startTime: "06:30",
       endTime: "08:00",
@@ -526,33 +541,7 @@ async function seed() {
   // Seed District Health Data (25 Distrik Kabupaten Puncak)
   console.log("Seeding district health data...");
   const currentYear = new Date().getFullYear();
-  const districtNames = [
-    "Agandugume",
-    "Amungkalpia",
-    "Beoga",
-    "Beoga Barat",
-    "Beoga Timur",
-    "Bina",
-    "Dervos",
-    "Doufo",
-    "Erelmakawia",
-    "Gome",
-    "Gome Utara",
-    "Ilaga", // Ibu kota
-    "Ilaga Utara",
-    "Kembru",
-    "Lambewi",
-    "Mabugi",
-    "Mage'abume",
-    "Ogamanim",
-    "Omukia",
-    "Oneri",
-    "Pogoma",
-    "Sinak",
-    "Sinak Barat",
-    "Wangbe",
-    "Yugumuak",
-  ];
+  // districtNames moved up
 
   const districtsData = districtNames.map((name, index) => ({
     id: generateId(),
@@ -626,7 +615,7 @@ async function seed() {
     { id: generateId(), districtName: "Yugumuak", name: "Puskesmas Yugumuak", code: "PKM-YGM", sortOrder: 25, status: "active" as const },
   ];
   await db.insert(puskesmas).values(puskesmasData);
-  
+
   // Seed Health Statistics
   console.log("Seeding health statistics...");
   const healthStatisticsData = [

@@ -1,14 +1,28 @@
 import { Hono } from "hono";
 import { db } from "../db";
 import { schedules, type NewSchedule } from "../db/schema";
-import { eq, desc, gte } from "drizzle-orm";
+import { eq, desc, gte, and } from "drizzle-orm";
 
 const schedulesRouter = new Hono();
 
+// Get all schedules with optional filters
 // Get all schedules
 schedulesRouter.get("/", async (c) => {
   try {
-    const result = await db.select().from(schedules).orderBy(desc(schedules.date));
+    const district = c.req.query("district");
+
+    let whereClause = undefined;
+
+    if (district && district !== "all") {
+      whereClause = eq(schedules.district, district);
+    }
+
+    const result = await db
+      .select()
+      .from(schedules)
+      .where(whereClause)
+      .orderBy(desc(schedules.date));
+
     return c.json({ data: result });
   } catch (error) {
     console.error("Error fetching schedules:", error);
