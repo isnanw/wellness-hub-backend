@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { users, type NewUser } from "../db/schema";
+import { users, type NewUser, roles } from "../db/schema";
 import { eq } from "drizzle-orm";
 
 const usersRouter = new Hono();
@@ -10,13 +10,20 @@ usersRouter.post("/login", async (c) => {
   try {
     const { email, password } = await c.req.json<{ email: string; password: string }>();
 
-    const result = await db.select().from(users).where(eq(users.email, email));
+    const result = await db
+      .select({
+        user: users,
+        role: roles,
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .where(eq(users.email, email));
 
     if (result.length === 0) {
       return c.json({ error: "Email atau password salah" }, 401);
     }
 
-    const user = result[0];
+    const { user, role } = result[0];
 
     // Simple password check (in production, use bcrypt)
     if (user.password !== password) {
@@ -37,7 +44,11 @@ usersRouter.post("/login", async (c) => {
     const { password: _, ...userWithoutPassword } = user;
 
     return c.json({
-      data: userWithoutPassword,
+      data: {
+        ...userWithoutPassword,
+        role: role?.slug || "user", // Compatibility with frontend
+        roleName: role?.name,
+      },
       message: "Login berhasil",
     });
   } catch (error) {
@@ -49,7 +60,22 @@ usersRouter.post("/login", async (c) => {
 // Get all users
 usersRouter.get("/", async (c) => {
   try {
-    const result = await db.select().from(users);
+    const result = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        status: users.status,
+        avatar: users.avatar,
+        lastLogin: users.lastLogin,
+        roleId: users.roleId,
+        role: roles.slug,
+        roleName: roles.name,
+        puskesmasId: users.puskesmasId,
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id));
+
     return c.json({ data: result });
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -61,13 +87,29 @@ usersRouter.get("/", async (c) => {
 usersRouter.get("/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    const result = await db.select().from(users).where(eq(users.id, id));
+    const result = await db
+      .select({
+        user: users,
+        role: roles,
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .where(eq(users.id, id));
 
     if (result.length === 0) {
       return c.json({ error: "User not found" }, 404);
     }
 
-    return c.json({ data: result[0] });
+    const { user, role } = result[0];
+    const { password: _, ...userWithoutPassword } = user;
+
+    return c.json({
+      data: {
+        ...userWithoutPassword,
+        role: role?.slug,
+        roleName: role?.name,
+      }
+    });
   } catch (error) {
     console.error("Error fetching user:", error);
     return c.json({ error: "Failed to fetch user" }, 500);

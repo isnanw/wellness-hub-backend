@@ -57,6 +57,13 @@
       "when": 1770893317396,
       "tag": "0007_talented_nicolaos",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1770905639341,
+      "tag": "0008_gray_shocker",
+      "breakpoints": true
     }
   ]
 }

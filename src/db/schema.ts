@@ -1,7 +1,6 @@
 import { pgTable, text, timestamp, integer, pgEnum, real } from "drizzle-orm/pg-core";
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["admin", "petugas", "user"]);
 export const statusEnum = pgEnum("status", ["active", "inactive"]);
 export const newsStatusEnum = pgEnum("news_status", ["published", "draft"]);
 export const programStatusEnum = pgEnum("program_status", ["active", "inactive", "completed"]);
@@ -12,13 +11,24 @@ export const documentCategoryEnum = pgEnum("document_category", ["pendaftaran", 
 export const documentFormatEnum = pgEnum("document_format", ["PDF", "XLSX", "DOC", "DOCX"]);
 export const healthReportCategoryEnum = pgEnum("health_report_category", ["profil", "imunisasi", "penyakit", "spm", "gizi", "lainnya"]);
 
+// Roles table
+export const roles = pgTable("roles", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(), // e.g. "Administrator", "Puskesmas", "Operator Dinkes"
+  slug: text("slug").notNull().unique(), // e.g. "admin", "puskesmas", "operator"
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Users table
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   password: text("password"),
-  role: userRoleEnum("role").default("user").notNull(),
+  roleId: text("role_id").references(() => roles.id).notNull(),
+  puskesmasId: text("puskesmas_id").references(() => puskesmas.id), // Nullable, only for 'puskesmas' role
   status: statusEnum("status").default("active").notNull(),
   avatar: text("avatar"),
   lastLogin: timestamp("last_login"),
@@ -255,3 +265,5 @@ export type Puskesmas = typeof puskesmas.$inferSelect;
 export type NewPuskesmas = typeof puskesmas.$inferInsert;
 export type GeneralInfo = typeof generalInfo.$inferSelect;
 export type NewGeneralInfo = typeof generalInfo.$inferInsert;
+export type Role = typeof roles.$inferSelect;
+export type NewRole = typeof roles.$inferInsert;
