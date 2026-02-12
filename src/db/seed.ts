@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { users, services, news, programs, registrations, schedules, districtHealthData, healthProgramCoverage, healthDiseaseData, puskesmas, healthStatistics } from "./schema";
+import { users, services, news, programs, registrations, schedules, districtHealthData, healthProgramCoverage, healthDiseaseData, puskesmas, healthStatistics, generalInfo } from "./schema";
 import "dotenv/config";
 
 function generateId(): string {
@@ -30,6 +30,7 @@ async function seed() {
   await db.delete(healthDiseaseData);
   await db.delete(puskesmas);
   await db.delete(healthStatistics);
+  await db.delete(generalInfo);
 
   // Seed Users
   console.log("Seeding users...");
@@ -628,6 +629,20 @@ async function seed() {
     { id: generateId(), label: "Cakupan Imunisasi (DPT)", value: "85.7%", icon: "ShieldCheck", change: "+1.2%", year: currentYear, sortOrder: 6, status: "active" as const },
     { id: generateId(), label: "Kasus Gizi Buruk (Balita)", value: "128", icon: "TriangleAlert", change: "-10", year: currentYear, sortOrder: 7, status: "active" as const },
   ];
+  console.log("Seeding general info...");
+  const generalInfoData = [
+    { id: generateId(), key: "hotline", value: "(0967) 123-456", label: "Nomor Hotline", category: "contact" },
+    { id: generateId(), key: "address", value: "Jl. Kesehatan No. 1, Jayapura, Kabupaten Puncak, Indonesia", label: "Alamat Kantor", category: "contact" },
+    { id: generateId(), key: "email", value: "dinkes@papua.go.id", label: "Email Resmi", category: "contact" },
+    { id: generateId(), key: "working_hours_weekday", value: "08:00 - 16:00", label: "Jam Kerja (Senin-Jumat)", category: "general" },
+    { id: generateId(), key: "emergency_call", value: "119", label: "Nomor Darurat", category: "contact" },
+    { id: generateId(), key: "facebook_url", value: "#", label: "Facebook URL", category: "social" },
+    { id: generateId(), key: "instagram_url", value: "#", label: "Instagram URL", category: "social" },
+    { id: generateId(), key: "twitter_url", value: "#", label: "Twitter URL", category: "social" },
+    { id: generateId(), key: "youtube_url", value: "#", label: "YouTube URL", category: "social" },
+  ];
+  await db.insert(generalInfo).values(generalInfoData);
+
   await db.insert(healthStatistics).values(healthStatisticsData);
 
   console.log("✅ Seed completed successfully!");

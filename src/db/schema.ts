@@ -216,6 +216,16 @@ export const puskesmas = pgTable("puskesmas", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// General Info table (for dynamic site settings like hotline, address, etc.)
+export const generalInfo = pgTable("general_info", {
+  id: text("id").primaryKey(),
+  key: text("key").unique().notNull(), // e.g., 'hotline', 'address', 'email'
+  value: text("value").notNull(),
+  label: text("label").notNull(), // e.g. "Nomor Hotline"
+  category: text("category").notNull().default("contact"), // e.g. "contact", "social", "general"
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Types export
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -243,3 +253,5 @@ export type HealthDiseaseData = typeof healthDiseaseData.$inferSelect;
 export type NewHealthDiseaseData = typeof healthDiseaseData.$inferInsert;
 export type Puskesmas = typeof puskesmas.$inferSelect;
 export type NewPuskesmas = typeof puskesmas.$inferInsert;
+export type GeneralInfo = typeof generalInfo.$inferSelect;
+export type NewGeneralInfo = typeof generalInfo.$inferInsert;
