@@ -17,6 +17,7 @@ import { healthReportsRouter } from "./routes/health-reports";
 import puskesmasRouter from "./routes/puskesmas";
 import statsRouter from "./routes/stats";
 import generalInfoRouter from "./routes/general-info";
+import { dashboardRouter } from "./routes/dashboard";
 
 const app = new Hono();
 
@@ -63,6 +64,7 @@ app.route("/api/health", healthReportsRouter);
 app.route("/api/puskesmas", puskesmasRouter);
 app.route("/api/stats", statsRouter);
 app.route("/api/general-info", generalInfoRouter);
+app.route("/api/dashboard", dashboardRouter);
 
 // 404 handler
 app.notFound((c) => {
