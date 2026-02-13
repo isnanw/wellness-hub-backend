@@ -1,14 +1,24 @@
 import { Hono } from "hono";
 import { db } from "../db";
 import { programs, type NewProgram } from "../db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
+import { authMiddleware } from "../middleware/auth";
 
 const programsRouter = new Hono();
 
-// Get all programs
-programsRouter.get("/", async (c) => {
+// Get all programs (Protected: Dashboard List)
+programsRouter.get("/", authMiddleware, async (c) => {
   try {
-    const result = await db.select().from(programs).orderBy(desc(programs.createdAt));
+    const user = c.get("user");
+    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+
+    let query = db.select().from(programs).$dynamic();
+
+    if (isPuskesmas) {
+      query = query.where(eq(programs.puskesmasId, user.puskesmasId!));
+    }
+
+    const result = await query.orderBy(desc(programs.createdAt));
     return c.json({ data: result });
   } catch (error) {
     console.error("Error fetching programs:", error);
@@ -16,7 +26,7 @@ programsRouter.get("/", async (c) => {
   }
 });
 
-// Get active programs only
+// Get active programs only (Public)
 programsRouter.get("/active", async (c) => {
   try {
     const result = await db
@@ -31,7 +41,7 @@ programsRouter.get("/active", async (c) => {
   }
 });
 
-// Get program by ID
+// Get program by ID (Public)
 programsRouter.get("/:id", async (c) => {
   try {
     const id = c.req.param("id");
@@ -48,7 +58,7 @@ programsRouter.get("/:id", async (c) => {
   }
 });
 
-// Get program by slug
+// Get program by slug (Public)
 programsRouter.get("/slug/:slug", async (c) => {
   try {
     const slug = c.req.param("slug");
@@ -65,9 +75,10 @@ programsRouter.get("/slug/:slug", async (c) => {
   }
 });
 
-// Create program
-programsRouter.post("/", async (c) => {
+// Create program (Protected)
+programsRouter.post("/", authMiddleware, async (c) => {
   try {
+    const user = c.get("user");
     const body = await c.req.json<NewProgram>();
     const id = crypto.randomUUID();
 
@@ -78,10 +89,17 @@ programsRouter.post("/", async (c) => {
       .replace(/\s+/g, "-")
       .trim();
 
+    // Handle puskesmasId
+    let finalPuskesmasId = body.puskesmasId;
+    if (user.role === "puskesmas" && user.puskesmasId) {
+      finalPuskesmasId = user.puskesmasId;
+    }
+
     const newProgram: NewProgram = {
       ...body,
       id,
       slug,
+      puskesmasId: finalPuskesmasId
     };
 
     const result = await db.insert(programs).values(newProgram).returning();
@@ -92,10 +110,13 @@ programsRouter.post("/", async (c) => {
   }
 });
 
-// Update program
-programsRouter.put("/:id", async (c) => {
+// Update program (Protected)
+programsRouter.put("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
+    const user = c.get("user");
+    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+
     const body = await c.req.json<Partial<NewProgram>>();
 
     // Convert date strings to Date objects
@@ -106,11 +127,16 @@ programsRouter.put("/:id", async (c) => {
       body.endDate = new Date(body.endDate);
     }
 
-    const result = await db
+    let query = db
       .update(programs)
-      .set({ ...body, updatedAt: new Date() })
-      .where(eq(programs.id, id))
-      .returning();
+      .set({ ...body, updatedAt: new Date() });
+
+    const conditions = [eq(programs.id, id)];
+    if (isPuskesmas) {
+      conditions.push(eq(programs.puskesmasId, user.puskesmasId!));
+    }
+
+    const result = await query.where(and(...conditions)).returning();
 
     if (result.length === 0) {
       return c.json({ error: "Program not found" }, 404);
@@ -123,11 +149,21 @@ programsRouter.put("/:id", async (c) => {
   }
 });
 
-// Delete program
-programsRouter.delete("/:id", async (c) => {
+// Delete program (Protected)
+programsRouter.delete("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
-    const result = await db.delete(programs).where(eq(programs.id, id)).returning();
+    const user = c.get("user");
+    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+
+    let query = db.delete(programs);
+
+    const conditions = [eq(programs.id, id)];
+    if (isPuskesmas) {
+      conditions.push(eq(programs.puskesmasId, user.puskesmasId!));
+    }
+
+    const result = await query.where(and(...conditions)).returning();
 
     if (result.length === 0) {
       return c.json({ error: "Program not found" }, 404);

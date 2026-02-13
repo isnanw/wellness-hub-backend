@@ -1,14 +1,24 @@
 import { Hono } from "hono";
 import { db } from "../db";
 import { news, type NewNews } from "../db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
+import { authMiddleware } from "../middleware/auth";
 
 const newsRouter = new Hono();
 
-// Get all news
-newsRouter.get("/", async (c) => {
+// Get all news (Protected: Dashboard List)
+newsRouter.get("/", authMiddleware, async (c) => {
   try {
-    const result = await db.select().from(news).orderBy(desc(news.publishedAt));
+    const user = c.get("user");
+    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+
+    let query = db.select().from(news).$dynamic();
+
+    if (isPuskesmas) {
+      query = query.where(eq(news.puskesmasId, user.puskesmasId!));
+    }
+
+    const result = await query.orderBy(desc(news.publishedAt));
     return c.json({ data: result });
   } catch (error) {
     console.error("Error fetching news:", error);
@@ -16,7 +26,7 @@ newsRouter.get("/", async (c) => {
   }
 });
 
-// Get published news only
+// Get published news only (Public)
 newsRouter.get("/published", async (c) => {
   try {
     const result = await db
@@ -31,7 +41,7 @@ newsRouter.get("/published", async (c) => {
   }
 });
 
-// Get news by ID
+// Get news by ID (Public)
 newsRouter.get("/:id", async (c) => {
   try {
     const id = c.req.param("id");
@@ -48,7 +58,7 @@ newsRouter.get("/:id", async (c) => {
   }
 });
 
-// Get news by slug
+// Get news by slug (Public)
 newsRouter.get("/slug/:slug", async (c) => {
   try {
     const slug = c.req.param("slug");
@@ -65,9 +75,10 @@ newsRouter.get("/slug/:slug", async (c) => {
   }
 });
 
-// Create news
-newsRouter.post("/", async (c) => {
+// Create news (Protected)
+newsRouter.post("/", authMiddleware, async (c) => {
   try {
+    const user = c.get("user");
     const body = await c.req.json<NewNews>();
     const id = crypto.randomUUID();
 
@@ -78,11 +89,18 @@ newsRouter.post("/", async (c) => {
       .replace(/\s+/g, "-")
       .trim();
 
+    // Handle puskesmasId
+    let finalPuskesmasId = body.puskesmasId;
+    if (user.role === "puskesmas" && user.puskesmasId) {
+      finalPuskesmasId = user.puskesmasId;
+    }
+
     const newNews: NewNews = {
       ...body,
       id,
       slug,
       publishedAt: body.status === "published" ? new Date() : null,
+      puskesmasId: finalPuskesmasId
     };
 
     const result = await db.insert(news).values(newNews).returning();
@@ -93,10 +111,13 @@ newsRouter.post("/", async (c) => {
   }
 });
 
-// Update news
-newsRouter.put("/:id", async (c) => {
+// Update news (Protected)
+newsRouter.put("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
+    const user = c.get("user");
+    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+
     const body = await c.req.json<Partial<NewNews>>();
 
     // Convert publishedAt string to Date if provided
@@ -109,11 +130,16 @@ newsRouter.put("/:id", async (c) => {
       body.publishedAt = new Date();
     }
 
-    const result = await db
+    let query = db
       .update(news)
-      .set({ ...body, updatedAt: new Date() })
-      .where(eq(news.id, id))
-      .returning();
+      .set({ ...body, updatedAt: new Date() });
+
+    const conditions = [eq(news.id, id)];
+    if (isPuskesmas) {
+      conditions.push(eq(news.puskesmasId, user.puskesmasId!));
+    }
+
+    const result = await query.where(and(...conditions)).returning();
 
     if (result.length === 0) {
       return c.json({ error: "News not found" }, 404);
@@ -126,11 +152,21 @@ newsRouter.put("/:id", async (c) => {
   }
 });
 
-// Delete news
-newsRouter.delete("/:id", async (c) => {
+// Delete news (Protected)
+newsRouter.delete("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
-    const result = await db.delete(news).where(eq(news.id, id)).returning();
+    const user = c.get("user");
+    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+
+    let query = db.delete(news);
+
+    const conditions = [eq(news.id, id)];
+    if (isPuskesmas) {
+      conditions.push(eq(news.puskesmasId, user.puskesmasId!));
+    }
+
+    const result = await query.where(and(...conditions)).returning();
 
     if (result.length === 0) {
       return c.json({ error: "News not found" }, 404);
