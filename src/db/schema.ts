@@ -21,6 +21,21 @@ export const roles = pgTable("roles", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Master Puskesmas table
+export const puskesmas = pgTable("puskesmas", {
+  id: text("id").primaryKey(),
+  districtName: text("district_name").notNull(),
+  name: text("name").notNull(),
+  code: text("code").notNull().unique(),
+  address: text("address"),
+  phone: text("phone"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  status: statusEnum("status").default("active").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+
 // Users table
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -219,20 +234,6 @@ export const healthDiseaseData = pgTable("health_disease_data", {
   cases: integer("cases").notNull(),
   year: integer("year").notNull(),
   puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
-  sortOrder: integer("sort_order").default(0).notNull(),
-  status: statusEnum("status").default("active").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// Master Puskesmas table
-export const puskesmas = pgTable("puskesmas", {
-  id: text("id").primaryKey(),
-  districtName: text("district_name").notNull(),
-  name: text("name").notNull(),
-  code: text("code").notNull().unique(),
-  address: text("address"),
-  phone: text("phone"),
   sortOrder: integer("sort_order").default(0).notNull(),
   status: statusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
