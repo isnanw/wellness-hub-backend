@@ -2,6 +2,9 @@ import { Hono } from "hono";
 import { db } from "../db";
 import { users, type NewUser, roles } from "../db/schema";
 import { eq } from "drizzle-orm";
+import { sign } from "hono/jwt";
+import { setCookie, deleteCookie } from "hono/cookie";
+import { getJwtSecret } from "../middleware/auth";
 
 const usersRouter = new Hono();
 
@@ -40,6 +43,27 @@ usersRouter.post("/login", async (c) => {
       .set({ lastLogin: new Date() })
       .where(eq(users.id, user.id));
 
+    // Generate JWT
+    const payload = {
+      id: user.id,
+      email: user.email,
+      role: role?.slug || "user",
+      puskesmasId: user.puskesmasId,
+      name: user.name,
+      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days
+    };
+
+    const token = await sign(payload, getJwtSecret());
+
+    // Set HTTP-only cookie
+    setCookie(c, "auth_token", token, {
+      httpOnly: true,
+      secure: true, // Always secure (requires HTTPS or localhost)
+      sameSite: "Lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    });
+
     // Return user without password
     const { password: _, ...userWithoutPassword } = user;
 
@@ -56,6 +80,13 @@ usersRouter.post("/login", async (c) => {
     return c.json({ error: "Login gagal" }, 500);
   }
 });
+
+// Logout
+usersRouter.post("/logout", async (c) => {
+  deleteCookie(c, "auth_token");
+  return c.json({ message: "Logout berhasil" });
+});
+
 
 // Get all roles
 usersRouter.get("/roles", async (c) => {
