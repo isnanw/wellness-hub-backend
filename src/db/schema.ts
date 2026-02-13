@@ -46,6 +46,7 @@ export const services = pgTable("services", {
   image: text("image"),
   location: text("location").notNull(),
   schedule: text("schedule").notNull(),
+  puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
   status: statusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -61,6 +62,7 @@ export const news = pgTable("news", {
   category: text("category").notNull(),
   image: text("image"),
   author: text("author").notNull(),
+  puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
   status: newsStatusEnum("status").default("draft").notNull(),
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -80,6 +82,7 @@ export const programs = pgTable("programs", {
   target: integer("target").default(0).notNull(),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
+  puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
   status: programStatusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -95,7 +98,7 @@ export const registrations = pgTable("registrations", {
   email: text("email"),
   address: text("address"),
   service: text("service").notNull(),
-  puskesmas: text("puskesmas").notNull(),
+  puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
   appointmentDate: timestamp("appointment_date").notNull(),
   appointmentTime: text("appointment_time").notNull(),
   complaint: text("complaint"),
@@ -112,6 +115,7 @@ export const schedules = pgTable("schedules", {
   district: text("district"),
   location: text("location").notNull(),
   address: text("address"),
+  puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
   date: timestamp("date").notNull(),
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
@@ -135,12 +139,14 @@ export const documents = pgTable("documents", {
   fileUrl: text("file_url").notNull(),
   fileSize: text("file_size").notNull(),
   downloadCount: integer("download_count").default(0).notNull(),
+  puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
   status: statusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Health Statistics table (for overview cards like Total Penduduk, Faskes, etc.)
+// Note: Statistics might be global, but some could be per puskesmas. I'll add it just in case.
 export const healthStatistics = pgTable("health_statistics", {
   id: text("id").primaryKey(),
   label: text("label").notNull(),
@@ -148,6 +154,7 @@ export const healthStatistics = pgTable("health_statistics", {
   icon: text("icon").notNull(), // icon name like "Users", "Activity", etc.
   change: text("change"), // e.g. "+2.1%"
   year: integer("year").notNull(),
+  puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
   sortOrder: integer("sort_order").default(0).notNull(),
   status: statusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -155,6 +162,8 @@ export const healthStatistics = pgTable("health_statistics", {
 });
 
 // District Health Data table (for per-district data in Kabupaten Puncak)
+// This strictly related to district, maybe puskesmasId is not needed if it's aggregate?
+// But user asked to add to ALL tables. I'll add to be safe for filtering.
 export const districtHealthData = pgTable("district_health_data", {
   id: text("id").primaryKey(),
   districtName: text("district_name").notNull(),
@@ -164,6 +173,7 @@ export const districtHealthData = pgTable("district_health_data", {
   doctors: integer("doctors").default(0).notNull(),
   nurses: integer("nurses").default(0).notNull(),
   midwives: integer("midwives").default(0).notNull(),
+  puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
   year: integer("year").notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
   status: statusEnum("status").default("active").notNull(),
@@ -182,6 +192,7 @@ export const healthReports = pgTable("health_reports", {
   fileSize: text("file_size").notNull(),
   fileType: text("file_type").default("PDF").notNull(),
   downloadCount: integer("download_count").default(0).notNull(),
+  puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
   publishedAt: timestamp("published_at"),
   status: statusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -194,6 +205,7 @@ export const healthProgramCoverage = pgTable("health_program_coverage", {
   programName: text("program_name").notNull(),
   coveragePercent: real("coverage_percent").notNull(), // 0-100
   year: integer("year").notNull(),
+  puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
   sortOrder: integer("sort_order").default(0).notNull(),
   status: statusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -206,6 +218,7 @@ export const healthDiseaseData = pgTable("health_disease_data", {
   diseaseName: text("disease_name").notNull(),
   cases: integer("cases").notNull(),
   year: integer("year").notNull(),
+  puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
   sortOrder: integer("sort_order").default(0).notNull(),
   status: statusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

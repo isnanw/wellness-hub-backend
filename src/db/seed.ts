@@ -19,17 +19,17 @@ async function seed() {
 
   // Clear existing data
   console.log("Clearing existing data...");
+  await db.delete(healthStatistics);
+  await db.delete(districtHealthData);
+  await db.delete(healthProgramCoverage);
+  await db.delete(healthDiseaseData);
   await db.delete(schedules);
   await db.delete(registrations);
   await db.delete(programs);
   await db.delete(news);
   await db.delete(services);
   await db.delete(users);
-  await db.delete(districtHealthData);
-  await db.delete(healthProgramCoverage);
-  await db.delete(healthDiseaseData);
   await db.delete(puskesmas);
-  await db.delete(healthStatistics);
   await db.delete(generalInfo);
   await db.delete(roles);
 
@@ -62,7 +62,7 @@ async function seed() {
   const operatorRole = rolesData.find(r => r.slug === "operator");
   const puskesmasRole = rolesData.find(r => r.slug === "puskesmas");
 
-  // Seed Master Puskesmas (Moved UP)
+  // Seed Master Puskesmas
   console.log("Seeding puskesmas...");
   const puskesmasData = [
     { id: generateId(), districtName: "Agandugume", name: "Puskesmas Agandugume", code: "PKM-AGD", sortOrder: 0, status: "active" as const },
@@ -147,6 +147,7 @@ async function seed() {
       image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800",
       location: "Poli KIA",
       schedule: "Senin - Jumat, 08:00 - 12:00",
+      puskesmasId: ilagaPuskesmas?.id,
       status: "active" as const,
     },
     {
@@ -158,6 +159,7 @@ async function seed() {
       image: "https://images.unsplash.com/photo-1632053002928-1919605ee6f7?w=800",
       location: "Poli Anak",
       schedule: "Selasa & Kamis, 08:00 - 11:00",
+      puskesmasId: ilagaPuskesmas?.id,
       status: "active" as const,
     },
     {
@@ -169,6 +171,7 @@ async function seed() {
       image: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=800",
       location: "Poli Gizi",
       schedule: "Senin, Rabu, Jumat, 09:00 - 12:00",
+      puskesmasId: ilagaPuskesmas?.id,
       status: "active" as const,
     },
     {
@@ -180,6 +183,7 @@ async function seed() {
       image: "https://images.unsplash.com/photo-1447452001602-7090c7ab2db3?w=800",
       location: "Balai Desa / Puskesmas",
       schedule: "Rabu, 08:00 - 11:00",
+      puskesmasId: ilagaPuskesmas?.id,
       status: "active" as const,
     },
   ];
@@ -206,6 +210,7 @@ async function seed() {
       image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800",
       author: "Admin Puskesmas",
       status: "published" as const,
+      puskesmasId: ilagaPuskesmas?.id,
       publishedAt: new Date("2024-01-10"),
     },
     {
@@ -225,6 +230,7 @@ async function seed() {
       image: "https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=800",
       author: "Dr. Siti Rahayu",
       status: "published" as const,
+      puskesmasId: ilagaPuskesmas?.id,
       publishedAt: new Date("2024-01-08"),
     },
     {
@@ -252,6 +258,7 @@ async function seed() {
       image: "https://images.unsplash.com/photo-1632053002928-1919605ee6f7?w=800",
       author: "Tim Promkes",
       status: "published" as const,
+      puskesmasId: ilagaPuskesmas?.id,
       publishedAt: new Date("2024-01-05"),
     },
     {
@@ -274,6 +281,7 @@ async function seed() {
       image: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=800",
       author: "Ahli Gizi",
       status: "published" as const,
+      puskesmasId: ilagaPuskesmas?.id,
       publishedAt: new Date("2024-01-03"),
     },
   ];
@@ -294,6 +302,7 @@ async function seed() {
       target: 1500,
       startDate: new Date("2024-01-01"),
       endDate: new Date("2024-12-31"),
+      puskesmasId: ilagaPuskesmas?.id,
       status: "active" as const,
     },
     {
@@ -308,6 +317,7 @@ async function seed() {
       target: 400,
       startDate: new Date("2024-01-01"),
       endDate: new Date("2024-12-31"),
+      puskesmasId: ilagaPuskesmas?.id,
       status: "active" as const,
     },
     {
@@ -322,6 +332,7 @@ async function seed() {
       target: 1000,
       startDate: new Date("2024-01-01"),
       endDate: new Date("2024-12-31"),
+      puskesmasId: ilagaPuskesmas?.id,
       status: "active" as const,
     },
     {
@@ -336,6 +347,7 @@ async function seed() {
       target: 500,
       startDate: new Date("2024-01-01"),
       endDate: new Date("2024-12-31"),
+      puskesmasId: ilagaPuskesmas?.id,
       status: "active" as const,
     },
     {
@@ -350,6 +362,7 @@ async function seed() {
       target: 150,
       startDate: new Date("2024-01-01"),
       endDate: new Date("2024-12-31"),
+      puskesmasId: ilagaPuskesmas?.id,
       status: "active" as const,
     },
     {
@@ -364,6 +377,7 @@ async function seed() {
       target: 3000,
       startDate: new Date("2024-01-01"),
       endDate: new Date("2024-12-31"),
+      puskesmasId: ilagaPuskesmas?.id,
       status: "active" as const,
     },
   ];
@@ -381,7 +395,7 @@ async function seed() {
       email: "ahmad.rizki@email.com",
       address: "Jl. Merdeka No. 45, RT 01/RW 02, Kelurahan A",
       service: "Pemeriksaan Umum",
-      puskesmas: "Puskesmas Sehat Sejahtera",
+      puskesmasId: ilagaPuskesmas?.id,
       appointmentDate: new Date("2024-01-20"),
       appointmentTime: "08:00",
       complaint: "Demam dan batuk selama 3 hari",
@@ -396,7 +410,7 @@ async function seed() {
       email: "siti.fatimah@email.com",
       address: "Jl. Sudirman No. 12, RT 03/RW 01, Kelurahan B",
       service: "Pemeriksaan Ibu Hamil",
-      puskesmas: "Puskesmas Sehat Sejahtera",
+      puskesmasId: ilagaPuskesmas?.id,
       appointmentDate: new Date("2024-01-21"),
       appointmentTime: "09:00",
       complaint: "Kontrol kehamilan bulan ke-7",
@@ -411,7 +425,7 @@ async function seed() {
       email: null,
       address: "Jl. Pahlawan No. 8, RT 02/RW 03, Kelurahan C",
       service: "Pemeriksaan Gigi",
-      puskesmas: "Puskesmas Sehat Sejahtera",
+      puskesmasId: ilagaPuskesmas?.id,
       appointmentDate: new Date("2024-01-19"),
       appointmentTime: "10:00",
       complaint: "Gigi berlubang dan nyeri",
@@ -426,7 +440,7 @@ async function seed() {
       email: "dewi.lestari@email.com",
       address: "Jl. Diponegoro No. 23, RT 04/RW 02, Kelurahan A",
       service: "Imunisasi Anak",
-      puskesmas: "Puskesmas Sehat Sejahtera",
+      puskesmasId: ilagaPuskesmas?.id,
       appointmentDate: new Date("2024-01-22"),
       appointmentTime: "08:30",
       complaint: "Imunisasi DPT untuk anak usia 2 bulan",
@@ -441,7 +455,7 @@ async function seed() {
       email: null,
       address: "Jl. Ahmad Yani No. 56, RT 01/RW 04, Kelurahan D",
       service: "Konsultasi Gizi",
-      puskesmas: "Puskesmas Sehat Sejahtera",
+      puskesmasId: ilagaPuskesmas?.id,
       appointmentDate: new Date("2024-01-18"),
       appointmentTime: "11:00",
       complaint: "Konsultasi diet untuk diabetes",
@@ -456,7 +470,7 @@ async function seed() {
       email: "rina.wulandari@email.com",
       address: "Jl. Gatot Subroto No. 34, RT 05/RW 01, Kelurahan B",
       service: "Pemeriksaan Umum",
-      puskesmas: "Puskesmas Sehat Sejahtera",
+      puskesmasId: ilagaPuskesmas?.id,
       appointmentDate: new Date("2024-01-23"),
       appointmentTime: "09:30",
       complaint: "Pusing dan mual",
@@ -492,6 +506,7 @@ async function seed() {
       officer: "Bidan Dewi Kartika",
       description: "Kegiatan Posyandu rutin untuk balita di wilayah Kampung Kago, Distrik Ilaga",
       status: "upcoming" as const,
+      puskesmasId: ilagaPuskesmas?.id,
     },
     {
       id: generateId(),
@@ -508,6 +523,7 @@ async function seed() {
       officer: "Dr. Siti Rahayu",
       description: "Program imunisasi campak rubella untuk anak usia 9 bulan - 5 tahun",
       status: "upcoming" as const,
+      puskesmasId: ilagaPuskesmas?.id,
     },
     {
       id: generateId(),
@@ -524,6 +540,7 @@ async function seed() {
       officer: "Sanitarian Ahmad Fauzi",
       description: "Sosialisasi pencegahan malaria dan pembagian kelambu",
       status: "upcoming" as const,
+      puskesmasId: ilagaPuskesmas?.id,
     },
     {
       id: generateId(),
@@ -540,6 +557,7 @@ async function seed() {
       officer: "Perawat Rina Susanti",
       description: "Pemeriksaan tekanan darah, gula darah, dan kolesterol untuk lansia",
       status: "ongoing" as const,
+      puskesmasId: ilagaPuskesmas?.id,
     },
     {
       id: generateId(),
@@ -556,6 +574,7 @@ async function seed() {
       officer: "Tim Vaksinasi Puskesmas",
       description: "Vaksinasi COVID-19 booster kedua untuk masyarakat umum",
       status: "completed" as const,
+      puskesmasId: ilagaPuskesmas?.id,
     },
     {
       id: generateId(),
@@ -572,6 +591,7 @@ async function seed() {
       officer: "Instruktur Senam Yuli",
       description: "Senam rutin untuk peserta program Prolanis (Diabetes & Hipertensi)",
       status: "upcoming" as const,
+      puskesmasId: ilagaPuskesmas?.id,
     },
   ];
   await db.insert(schedules).values(schedulesData);
@@ -579,7 +599,6 @@ async function seed() {
   // Seed District Health Data (25 Distrik Kabupaten Puncak)
   console.log("Seeding district health data...");
   const currentYear = new Date().getFullYear();
-  // districtNames moved up
 
   const districtsData = districtNames.map((name, index) => ({
     id: generateId(),
@@ -593,47 +612,49 @@ async function seed() {
     year: currentYear,
     sortOrder: index,
     status: "active" as const,
+    puskesmasId: ilagaPuskesmas?.id,
   }));
   await db.insert(districtHealthData).values(districtsData);
 
   // Seed Health Program Coverage
   console.log("Seeding health program coverage...");
   const coverageData = [
-    { id: generateId(), programName: "Imunisasi Dasar Lengkap", coveragePercent: 78.5, year: currentYear, sortOrder: 0, status: "active" as const },
-    { id: generateId(), programName: "Persalinan di Faskes", coveragePercent: 65.2, year: currentYear, sortOrder: 1, status: "active" as const },
-    { id: generateId(), programName: "Kunjungan Neonatal", coveragePercent: 72.8, year: currentYear, sortOrder: 2, status: "active" as const },
-    { id: generateId(), programName: "Pelayanan Kesehatan Balita", coveragePercent: 68.4, year: currentYear, sortOrder: 3, status: "active" as const },
-    { id: generateId(), programName: "Pelayanan Kesehatan Lansia", coveragePercent: 54.3, year: currentYear, sortOrder: 4, status: "active" as const },
-    { id: generateId(), programName: "KB Aktif", coveragePercent: 61.7, year: currentYear, sortOrder: 5, status: "active" as const },
-    { id: generateId(), programName: "Pemeriksaan Ibu Hamil (K4)", coveragePercent: 70.1, year: currentYear, sortOrder: 6, status: "active" as const },
+    { id: generateId(), programName: "Imunisasi Dasar Lengkap", coveragePercent: 78.5, year: currentYear, sortOrder: 0, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), programName: "Persalinan di Faskes", coveragePercent: 65.2, year: currentYear, sortOrder: 1, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), programName: "Kunjungan Neonatal", coveragePercent: 72.8, year: currentYear, sortOrder: 2, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), programName: "Pelayanan Kesehatan Balita", coveragePercent: 68.4, year: currentYear, sortOrder: 3, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), programName: "Pelayanan Kesehatan Lansia", coveragePercent: 54.3, year: currentYear, sortOrder: 4, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), programName: "KB Aktif", coveragePercent: 61.7, year: currentYear, sortOrder: 5, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), programName: "Pemeriksaan Ibu Hamil (K4)", coveragePercent: 70.1, year: currentYear, sortOrder: 6, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
   ];
   await db.insert(healthProgramCoverage).values(coverageData);
 
   // Seed Health Disease Data
   console.log("Seeding health disease data...");
   const diseaseData = [
-    { id: generateId(), diseaseName: "ISPA", cases: 4567, year: currentYear, sortOrder: 0, status: "active" as const },
-    { id: generateId(), diseaseName: "Malaria", cases: 2345, year: currentYear, sortOrder: 1, status: "active" as const },
-    { id: generateId(), diseaseName: "Diare", cases: 1892, year: currentYear, sortOrder: 2, status: "active" as const },
-    { id: generateId(), diseaseName: "TB Paru", cases: 876, year: currentYear, sortOrder: 3, status: "active" as const },
-    { id: generateId(), diseaseName: "Hipertensi", cases: 1234, year: currentYear, sortOrder: 4, status: "active" as const },
-    { id: generateId(), diseaseName: "Diabetes Mellitus", cases: 543, year: currentYear, sortOrder: 5, status: "active" as const },
-    { id: generateId(), diseaseName: "Pneumonia", cases: 321, year: currentYear, sortOrder: 6, status: "active" as const },
+    { id: generateId(), diseaseName: "ISPA", cases: 4567, year: currentYear, sortOrder: 0, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), diseaseName: "Malaria", cases: 2345, year: currentYear, sortOrder: 1, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), diseaseName: "Diare", cases: 1892, year: currentYear, sortOrder: 2, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), diseaseName: "TB Paru", cases: 876, year: currentYear, sortOrder: 3, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), diseaseName: "Hipertensi", cases: 1234, year: currentYear, sortOrder: 4, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), diseaseName: "Diabetes Mellitus", cases: 543, year: currentYear, sortOrder: 5, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), diseaseName: "Pneumonia", cases: 321, year: currentYear, sortOrder: 6, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
   ];
   await db.insert(healthDiseaseData).values(diseaseData);
 
   // Seed Health Statistics
   console.log("Seeding health statistics...");
   const healthStatisticsData = [
-    { id: generateId(), label: "Total Populasi", value: "194.570", icon: "Users", change: "+1.2%", year: currentYear, sortOrder: 0, status: "active" as const },
-    { id: generateId(), label: "Jumlah Faskes", value: "30", icon: "Hospital", change: " ", year: currentYear, sortOrder: 1, status: "active" as const },
-    { id: generateId(), label: "Tenaga Kesehatan", value: "450", icon: "Stethoscope", change: "+5", year: currentYear, sortOrder: 2, status: "active" as const },
-    { id: generateId(), label: "Angka Harapan Hidup", value: "65.2 thn", icon: "HeartPulse", change: "+0.3 thn", year: currentYear, sortOrder: 3, status: "active" as const },
-    { id: generateId(), label: "Kunjungan Rawat Jalan", value: "12.345", icon: "Activity", change: "+3.5%", year: currentYear, sortOrder: 4, status: "active" as const },
-    { id: generateId(), label: "Kelahiran Hidup", value: "3.456", icon: "Baby", change: "-0.5%", year: currentYear, sortOrder: 5, status: "active" as const },
-    { id: generateId(), label: "Cakupan Imunisasi (DPT)", value: "85.7%", icon: "ShieldCheck", change: "+1.2%", year: currentYear, sortOrder: 6, status: "active" as const },
-    { id: generateId(), label: "Kasus Gizi Buruk (Balita)", value: "128", icon: "TriangleAlert", change: "-10", year: currentYear, sortOrder: 7, status: "active" as const },
+    { id: generateId(), label: "Total Populasi", value: "194.570", icon: "Users", change: "+1.2%", year: currentYear, sortOrder: 0, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), label: "Jumlah Faskes", value: "30", icon: "Hospital", change: " ", year: currentYear, sortOrder: 1, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), label: "Tenaga Kesehatan", value: "450", icon: "Stethoscope", change: "+5", year: currentYear, sortOrder: 2, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), label: "Angka Harapan Hidup", value: "65.2 thn", icon: "HeartPulse", change: "+0.3 thn", year: currentYear, sortOrder: 3, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), label: "Kunjungan Rawat Jalan", value: "12.345", icon: "Activity", change: "+3.5%", year: currentYear, sortOrder: 4, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), label: "Kelahiran Hidup", value: "3.456", icon: "Baby", change: "-0.5%", year: currentYear, sortOrder: 5, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), label: "Cakupan Imunisasi (DPT)", value: "85.7%", icon: "ShieldCheck", change: "+1.2%", year: currentYear, sortOrder: 6, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
+    { id: generateId(), label: "Kasus Gizi Buruk (Balita)", value: "128", icon: "TriangleAlert", change: "-10", year: currentYear, sortOrder: 7, status: "active" as const, puskesmasId: ilagaPuskesmas?.id },
   ];
+
   console.log("Seeding general info...");
   const generalInfoData = [
     { id: generateId(), key: "hotline", value: "(0967) 123-456", label: "Nomor Hotline", category: "contact" },
