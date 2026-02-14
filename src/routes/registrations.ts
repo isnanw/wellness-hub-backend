@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { registrations, type NewRegistration, puskesmas } from "../db/schema";
+import { unitKerja } from "../db/schema";
 import { eq, desc, and, sql, gte, lt } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 
@@ -10,7 +10,7 @@ const registrationsRouter = new Hono();
 registrationsRouter.use("*", authMiddleware);
 
 // Helper function to generate queue number
-async function generateQueueNumber(puskesmasId: string, service: string, appointmentDate: Date): Promise<string> {
+async function generateQueueNumber(unitKerjaId: string, service: string, appointmentDate: Date): Promise<string> {
   // Format date as YYYYMMDD
   const dateStr = appointmentDate.toISOString().split("T")[0].replace(/-/g, "");
 
@@ -18,7 +18,7 @@ async function generateQueueNumber(puskesmasId: string, service: string, appoint
   const serviceCode = service.substring(0, 3).toUpperCase();
 
   // Get puskesmas code (extract from name, e.g., "Puskesmas Ilaga" -> "ILG")
-  const pkm = await db.select().from(puskesmas).where(eq(puskesmas.id, puskesmasId));
+  const pkm = await db.select().from(puskesmas).where(eq(puskesmas.id, unitKerjaId));
   const pkmName = pkm[0]?.name?.replace(/Puskesmas\s*/i, "").trim() || "PKM";
   const pkmCode = pkmName.substring(0, 3).toUpperCase();
 
@@ -34,7 +34,7 @@ async function generateQueueNumber(puskesmasId: string, service: string, appoint
     .from(registrations)
     .where(
       and(
-        eq(registrations.puskesmasId, puskesmasId),
+        eq(registrations.unitKerjaId, unitKerjaId),
         eq(registrations.service, service),
         gte(registrations.appointmentDate, startOfDay),
         lt(registrations.appointmentDate, endOfDay)
@@ -51,7 +51,7 @@ async function generateQueueNumber(puskesmasId: string, service: string, appoint
 registrationsRouter.get("/", async (c) => {
   try {
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
 
     let query = db
       .select({
@@ -63,7 +63,7 @@ registrationsRouter.get("/", async (c) => {
         email: registrations.email,
         address: registrations.address,
         service: registrations.service,
-        puskesmasId: registrations.puskesmasId,
+        unitKerjaId: registrations.unitKerjaId,
         appointmentDate: registrations.appointmentDate,
         appointmentTime: registrations.appointmentTime,
         complaint: registrations.complaint,
@@ -73,11 +73,11 @@ registrationsRouter.get("/", async (c) => {
         puskesmas: puskesmas.name, // Join result for frontend compatibility
       })
       .from(registrations)
-      .leftJoin(puskesmas, eq(registrations.puskesmasId, puskesmas.id))
+      .leftJoin(puskesmas, eq(registrations.unitKerjaId, puskesmas.id))
       .$dynamic();
 
     if (isPuskesmas) {
-      query = query.where(eq(registrations.puskesmasId, user.puskesmasId!));
+      query = query.where(eq(registrations.unitKerjaId, user.unitKerjaId!));
     }
 
     const result = await query.orderBy(desc(registrations.createdAt));
@@ -92,7 +92,7 @@ registrationsRouter.get("/", async (c) => {
 registrationsRouter.get("/status/:status", async (c) => {
   try {
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
     const status = c.req.param("status") as "pending" | "confirmed" | "completed" | "cancelled";
 
     let query = db
@@ -105,7 +105,7 @@ registrationsRouter.get("/status/:status", async (c) => {
         email: registrations.email,
         address: registrations.address,
         service: registrations.service,
-        puskesmasId: registrations.puskesmasId,
+        unitKerjaId: registrations.unitKerjaId,
         appointmentDate: registrations.appointmentDate,
         appointmentTime: registrations.appointmentTime,
         complaint: registrations.complaint,
@@ -115,12 +115,12 @@ registrationsRouter.get("/status/:status", async (c) => {
         puskesmas: puskesmas.name,
       })
       .from(registrations)
-      .leftJoin(puskesmas, eq(registrations.puskesmasId, puskesmas.id))
+      .leftJoin(puskesmas, eq(registrations.unitKerjaId, puskesmas.id))
       .$dynamic();
 
     const conditions = [eq(registrations.status, status)];
     if (isPuskesmas) {
-      conditions.push(eq(registrations.puskesmasId, user.puskesmasId!));
+      conditions.push(eq(registrations.unitKerjaId, user.unitKerjaId!));
     }
 
     query = query.where(and(...conditions));
@@ -138,7 +138,7 @@ registrationsRouter.get("/:id", async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
 
     let query = db
       .select({
@@ -150,7 +150,7 @@ registrationsRouter.get("/:id", async (c) => {
         email: registrations.email,
         address: registrations.address,
         service: registrations.service,
-        puskesmasId: registrations.puskesmasId,
+        unitKerjaId: registrations.unitKerjaId,
         appointmentDate: registrations.appointmentDate,
         appointmentTime: registrations.appointmentTime,
         complaint: registrations.complaint,
@@ -160,12 +160,12 @@ registrationsRouter.get("/:id", async (c) => {
         puskesmas: puskesmas.name,
       })
       .from(registrations)
-      .leftJoin(puskesmas, eq(registrations.puskesmasId, puskesmas.id))
+      .leftJoin(puskesmas, eq(registrations.unitKerjaId, puskesmas.id))
       .$dynamic();
 
     const conditions = [eq(registrations.id, id)];
     if (isPuskesmas) {
-      conditions.push(eq(registrations.puskesmasId, user.puskesmasId!));
+      conditions.push(eq(registrations.unitKerjaId, user.unitKerjaId!));
     }
 
     const result = await query.where(and(...conditions));
@@ -204,7 +204,7 @@ registrationsRouter.get("/check/:nik", async (c) => {
         email: registrations.email,
         address: registrations.address,
         service: registrations.service,
-        puskesmasId: registrations.puskesmasId,
+        unitKerjaId: registrations.unitKerjaId,
         appointmentDate: registrations.appointmentDate,
         appointmentTime: registrations.appointmentTime,
         complaint: registrations.complaint,
@@ -214,7 +214,7 @@ registrationsRouter.get("/check/:nik", async (c) => {
         puskesmas: puskesmas.name,
       })
       .from(registrations)
-      .leftJoin(puskesmas, eq(registrations.puskesmasId, puskesmas.id))
+      .leftJoin(puskesmas, eq(registrations.unitKerjaId, puskesmas.id))
       .where(eq(registrations.nik, nik))
       .orderBy(desc(registrations.createdAt));
 
@@ -230,18 +230,18 @@ registrationsRouter.post("/", async (c) => {
   try {
     const user = c.get("user");
     // Type definition needs to match request body. 
-    // Frontend sends 'puskesmas' string? Or we expect 'puskesmasId'?
-    // Frontend likely still sends old format. We need to handle 'puskesmasId' from body if updated, 
+    // Frontend sends 'puskesmas' string? Or we expect 'unitKerjaId'?
+    // Frontend likely still sends old format. We need to handle 'unitKerjaId' from body if updated, 
     // OR force overwrite from user session.
 
     const body = await c.req.json<any>(); // use any to be flexible with legacy body
     const id = crypto.randomUUID();
 
     // Determine Puskesmas ID
-    let finalPuskesmasId = body.puskesmasId;
+    let finalPuskesmasId = body.unitKerjaId;
 
-    if (user.role === "puskesmas" && user.puskesmasId) {
-      finalPuskesmasId = user.puskesmasId;
+    if (user.role === "puskesmas" && user.unitKerjaId) {
+      finalPuskesmasId = user.unitKerjaId;
     }
 
     if (!finalPuskesmasId) {
@@ -261,7 +261,7 @@ registrationsRouter.post("/", async (c) => {
     const newRegistration: NewRegistration = {
       ...body,
       id,
-      puskesmasId: finalPuskesmasId, // Overwrite/Ensure
+      unitKerjaId: finalPuskesmasId, // Overwrite/Ensure
       queueNumber,
       appointmentDate,
     };
@@ -280,7 +280,7 @@ registrationsRouter.post("/", async (c) => {
       email: newRegistration.email,
       address: newRegistration.address,
       service: newRegistration.service,
-      puskesmasId: newRegistration.puskesmasId,
+      unitKerjaId: newRegistration.unitKerjaId,
       appointmentDate: newRegistration.appointmentDate,
       appointmentTime: newRegistration.appointmentTime,
       complaint: newRegistration.complaint,
@@ -301,7 +301,7 @@ registrationsRouter.put("/:id", async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
 
     const body = await c.req.json<Partial<NewRegistration>>();
 
@@ -311,7 +311,7 @@ registrationsRouter.put("/:id", async (c) => {
 
     const conditions = [eq(registrations.id, id)];
     if (isPuskesmas) {
-      conditions.push(eq(registrations.puskesmasId, user.puskesmasId!));
+      conditions.push(eq(registrations.unitKerjaId, user.unitKerjaId!));
     }
 
     const result = await query.where(and(...conditions)).returning();
@@ -332,7 +332,7 @@ registrationsRouter.patch("/:id/status", async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
     const { status } = await c.req.json<{ status: "pending" | "confirmed" | "completed" | "cancelled" }>();
 
     let query = db
@@ -341,7 +341,7 @@ registrationsRouter.patch("/:id/status", async (c) => {
 
     const conditions = [eq(registrations.id, id)];
     if (isPuskesmas) {
-      conditions.push(eq(registrations.puskesmasId, user.puskesmasId!));
+      conditions.push(eq(registrations.unitKerjaId, user.unitKerjaId!));
     }
 
     const result = await query.where(and(...conditions)).returning();
@@ -362,13 +362,13 @@ registrationsRouter.delete("/:id", async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
 
     let query = db.delete(registrations);
 
     const conditions = [eq(registrations.id, id)];
     if (isPuskesmas) {
-      conditions.push(eq(registrations.puskesmasId, user.puskesmasId!));
+      conditions.push(eq(registrations.unitKerjaId, user.unitKerjaId!));
     }
 
     const result = await query.where(and(...conditions)).returning();

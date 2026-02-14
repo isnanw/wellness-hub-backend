@@ -12,7 +12,7 @@ const newsRouter = new Hono();
 newsRouter.get("/", async (c) => {
   try {
     let isPuskesmas = false;
-    let puskesmasId = "";
+    let unitKerjaId = "";
 
     // Check for auth token manually to allow public access
     const token = getCookie(c, "auth_token");
@@ -21,10 +21,10 @@ newsRouter.get("/", async (c) => {
         const secret = process.env.JWT_SECRET || "your-secret-key";
         const payload = await verify(token, secret, "HS256");
         // @ts-ignore
-        if (payload.role === "puskesmas" && payload.puskesmasId) {
+        if (payload.role === "puskesmas" && payload.unitKerjaId) {
           isPuskesmas = true;
           // @ts-ignore
-          puskesmasId = payload.puskesmasId as string;
+          unitKerjaId = payload.unitKerjaId as string;
         }
       } catch (e) {
         // Invalid token, proceed as public
@@ -34,7 +34,7 @@ newsRouter.get("/", async (c) => {
     let query = db.select().from(news).$dynamic();
 
     if (isPuskesmas) {
-      query = query.where(eq(news.puskesmasId, puskesmasId));
+      query = query.where(eq(news.unitKerjaId, unitKerjaId));
     }
 
     const result = await query.orderBy(desc(news.publishedAt));
@@ -108,10 +108,10 @@ newsRouter.post("/", authMiddleware, async (c) => {
       .replace(/\s+/g, "-")
       .trim();
 
-    // Handle puskesmasId
-    let finalPuskesmasId = body.puskesmasId;
-    if (user.role === "puskesmas" && user.puskesmasId) {
-      finalPuskesmasId = user.puskesmasId;
+    // Handle unitKerjaId
+    let finalPuskesmasId = body.unitKerjaId;
+    if (user.role === "puskesmas" && user.unitKerjaId) {
+      finalPuskesmasId = user.unitKerjaId;
     }
 
     const newNews: NewNews = {
@@ -119,7 +119,7 @@ newsRouter.post("/", authMiddleware, async (c) => {
       id,
       slug,
       publishedAt: body.status === "published" ? new Date() : null,
-      puskesmasId: finalPuskesmasId
+      unitKerjaId: finalPuskesmasId
     };
 
     const result = await db.insert(news).values(newNews).returning();
@@ -135,7 +135,7 @@ newsRouter.put("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
 
     const body = await c.req.json<Partial<NewNews>>();
 
@@ -155,7 +155,7 @@ newsRouter.put("/:id", authMiddleware, async (c) => {
 
     const conditions = [eq(news.id, id)];
     if (isPuskesmas) {
-      conditions.push(eq(news.puskesmasId, user.puskesmasId!));
+      conditions.push(eq(news.unitKerjaId, user.unitKerjaId!));
     }
 
     const result = await query.where(and(...conditions)).returning();
@@ -176,13 +176,13 @@ newsRouter.delete("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
 
     let query = db.delete(news);
 
     const conditions = [eq(news.id, id)];
     if (isPuskesmas) {
-      conditions.push(eq(news.puskesmasId, user.puskesmasId!));
+      conditions.push(eq(news.unitKerjaId, user.unitKerjaId!));
     }
 
     const result = await query.where(and(...conditions)).returning();

@@ -12,7 +12,7 @@ const programsRouter = new Hono();
 programsRouter.get("/", async (c) => {
   try {
     let isPuskesmas = false;
-    let puskesmasId = "";
+    let unitKerjaId = "";
 
     // Check for auth token manually to allow public access
     const token = getCookie(c, "auth_token");
@@ -21,10 +21,10 @@ programsRouter.get("/", async (c) => {
         const secret = process.env.JWT_SECRET || "your-secret-key";
         const payload = await verify(token, secret, "HS256");
         // @ts-ignore
-        if (payload.role === "puskesmas" && payload.puskesmasId) {
+        if (payload.role === "puskesmas" && payload.unitKerjaId) {
           isPuskesmas = true;
           // @ts-ignore
-          puskesmasId = payload.puskesmasId as string;
+          unitKerjaId = payload.unitKerjaId as string;
         }
       } catch (e) {
         // Invalid token, proceed as public
@@ -34,7 +34,7 @@ programsRouter.get("/", async (c) => {
     let query = db.select().from(programs).$dynamic();
 
     if (isPuskesmas) {
-      query = query.where(eq(programs.puskesmasId, puskesmasId));
+      query = query.where(eq(programs.unitKerjaId, unitKerjaId));
     }
 
     const result = await query.orderBy(desc(programs.createdAt));
@@ -108,17 +108,17 @@ programsRouter.post("/", authMiddleware, async (c) => {
       .replace(/\s+/g, "-")
       .trim();
 
-    // Handle puskesmasId
-    let finalPuskesmasId = body.puskesmasId;
-    if (user.role === "puskesmas" && user.puskesmasId) {
-      finalPuskesmasId = user.puskesmasId;
+    // Handle unitKerjaId
+    let finalPuskesmasId = body.unitKerjaId;
+    if (user.role === "puskesmas" && user.unitKerjaId) {
+      finalPuskesmasId = user.unitKerjaId;
     }
 
     const newProgram: NewProgram = {
       ...body,
       id,
       slug,
-      puskesmasId: finalPuskesmasId
+      unitKerjaId: finalPuskesmasId
     };
 
     const result = await db.insert(programs).values(newProgram).returning();
@@ -134,7 +134,7 @@ programsRouter.put("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
 
     const body = await c.req.json<Partial<NewProgram>>();
 
@@ -152,7 +152,7 @@ programsRouter.put("/:id", authMiddleware, async (c) => {
 
     const conditions = [eq(programs.id, id)];
     if (isPuskesmas) {
-      conditions.push(eq(programs.puskesmasId, user.puskesmasId!));
+      conditions.push(eq(programs.unitKerjaId, user.unitKerjaId!));
     }
 
     const result = await query.where(and(...conditions)).returning();
@@ -173,13 +173,13 @@ programsRouter.delete("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
 
     let query = db.delete(programs);
 
     const conditions = [eq(programs.id, id)];
     if (isPuskesmas) {
-      conditions.push(eq(programs.puskesmasId, user.puskesmasId!));
+      conditions.push(eq(programs.unitKerjaId, user.unitKerjaId!));
     }
 
     const result = await query.where(and(...conditions)).returning();

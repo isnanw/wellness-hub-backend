@@ -9,7 +9,7 @@ export type AuthUser = {
     id: string;
     email: string;
     role: string;
-    puskesmasId: string | null;
+    unitKerjaId: string | null;
     name: string;
 };
 

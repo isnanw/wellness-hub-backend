@@ -1,12 +1,17 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { puskesmas } from "../db/schema";
+import { unitKerja } from "../db/schema";
 import { eq, asc, desc } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 
 const app = new Hono();
 
 const generateId = () => crypto.randomUUID();
+// Simple code generator: UNIT-XXXXXX
+const generateCode = () => {
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `UNIT-${random}`;
+};
 
 // GET all puskesmas (Protected: Admin Only or Internal Use)
 app.get("/", authMiddleware, async (c) => {
@@ -17,8 +22,8 @@ app.get("/", authMiddleware, async (c) => {
 
     const data = await db
       .select()
-      .from(puskesmas)
-      .orderBy(asc(puskesmas.sortOrder), asc(puskesmas.districtName), asc(puskesmas.name));
+      .from(unitKerja)
+      .orderBy(asc(unitKerja.sortOrder), asc(unitKerja.districtName), asc(unitKerja.name));
     return c.json({ success: true, data });
   } catch (error) {
     console.error("Error fetching puskesmas:", error);
@@ -31,9 +36,9 @@ app.get("/active", async (c) => {
   try {
     const data = await db
       .select()
-      .from(puskesmas)
-      .where(eq(puskesmas.status, "active"))
-      .orderBy(asc(puskesmas.sortOrder), asc(puskesmas.districtName), asc(puskesmas.name));
+      .from(unitKerja)
+      .where(eq(unitKerja.status, "active"))
+      .orderBy(asc(unitKerja.sortOrder), asc(unitKerja.districtName), asc(unitKerja.name));
     return c.json({ success: true, data });
   } catch (error) {
     console.error("Error fetching active puskesmas:", error);
@@ -45,7 +50,7 @@ app.get("/active", async (c) => {
 app.get("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
-    const [data] = await db.select().from(puskesmas).where(eq(puskesmas.id, id));
+    const [data] = await db.select().from(unitKerja).where(eq(unitKerja.id, id));
 
     if (!data) {
       return c.json({ success: false, error: "Puskesmas not found" }, 404);
@@ -67,20 +72,20 @@ app.post("/", authMiddleware, async (c) => {
     }
 
     const body = await c.req.json();
-    const { districtId, districtName, name, code, address, phone, sortOrder, status } = body;
+    const { districtId, districtName, name, address, phone, sortOrder, status } = body;
 
-    if (!districtName || !name || !code) {
-      return c.json({ success: false, error: "District name, name, and code are required" }, 400);
+    if (!districtName || !name) {
+      return c.json({ success: false, error: "District name and name are required" }, 400);
     }
 
     const [data] = await db
-      .insert(puskesmas)
+      .insert(unitKerja)
       .values({
         id: generateId(),
         districtId: districtId || null,
         districtName,
         name,
-        code,
+        code: generateCode(), // Auto-generate code
         address: address || null,
         phone: phone || null,
         sortOrder: sortOrder || 0,
@@ -107,13 +112,13 @@ app.put("/:id", authMiddleware, async (c) => {
     const body = await c.req.json();
     const { districtId, districtName, name, code, address, phone, sortOrder, status } = body;
 
-    const [existing] = await db.select().from(puskesmas).where(eq(puskesmas.id, id));
+    const [existing] = await db.select().from(unitKerja).where(eq(unitKerja.id, id));
     if (!existing) {
       return c.json({ success: false, error: "Puskesmas not found" }, 404);
     }
 
     const [data] = await db
-      .update(puskesmas)
+      .update(unitKerja)
       .set({
         districtId: districtId !== undefined ? districtId : existing.districtId,
         districtName: districtName ?? existing.districtName,
@@ -125,7 +130,7 @@ app.put("/:id", authMiddleware, async (c) => {
         status: status ?? existing.status,
         updatedAt: new Date(),
       })
-      .where(eq(puskesmas.id, id))
+      .where(eq(unitKerja.id, id))
       .returning();
 
     return c.json({ success: true, data });
@@ -145,12 +150,12 @@ app.delete("/:id", authMiddleware, async (c) => {
 
     const id = c.req.param("id");
 
-    const [existing] = await db.select().from(puskesmas).where(eq(puskesmas.id, id));
+    const [existing] = await db.select().from(unitKerja).where(eq(unitKerja.id, id));
     if (!existing) {
       return c.json({ success: false, error: "Puskesmas not found" }, 404);
     }
 
-    await db.delete(puskesmas).where(eq(puskesmas.id, id));
+    await db.delete(unitKerja).where(eq(unitKerja.id, id));
     return c.json({ success: true, message: "Puskesmas deleted successfully" });
   } catch (error) {
     console.error("Error deleting puskesmas:", error);

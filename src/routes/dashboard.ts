@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { users, puskesmas, services, programs, news, registrations } from "../db/schema";
+import { unitKerja } from "../db/schema";
 import { count, desc, eq } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 
@@ -12,13 +12,13 @@ dashboardRouter.use("*", authMiddleware);
 dashboardRouter.get("/stats", async (c) => {
     try {
         const user = c.get("user");
-        const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
-        const pId = user.puskesmasId;
+        const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+        const pId = user.unitKerjaId;
 
         // Helper to apply puskesmas filter
         const withFilter = (query: any, table: any) => {
             if (isPuskesmas && pId) {
-                return query.where(eq(table.puskesmasId, pId));
+                return query.where(eq(table.unitKerjaId, pId));
             }
             return query;
         };

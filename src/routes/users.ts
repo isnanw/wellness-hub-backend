@@ -48,7 +48,7 @@ usersRouter.post("/login", async (c) => {
       id: user.id,
       email: user.email,
       role: role?.slug || "user",
-      puskesmasId: user.puskesmasId,
+      unitKerjaId: user.unitKerjaId,
       name: user.name,
       exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days
     };
@@ -113,7 +113,7 @@ usersRouter.get("/", async (c) => {
         roleId: users.roleId,
         role: roles.slug,
         roleName: roles.name,
-        puskesmasId: users.puskesmasId,
+        unitKerjaId: users.unitKerjaId,
       })
       .from(users)
       .leftJoin(roles, eq(users.roleId, roles.id));
