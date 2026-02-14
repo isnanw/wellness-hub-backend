@@ -67,7 +67,7 @@ app.post("/", authMiddleware, async (c) => {
     }
 
     const body = await c.req.json();
-    const { districtName, name, code, address, phone, sortOrder, status } = body;
+    const { districtId, districtName, name, code, address, phone, sortOrder, status } = body;
 
     if (!districtName || !name || !code) {
       return c.json({ success: false, error: "District name, name, and code are required" }, 400);
@@ -77,6 +77,7 @@ app.post("/", authMiddleware, async (c) => {
       .insert(puskesmas)
       .values({
         id: generateId(),
+        districtId: districtId || null,
         districtName,
         name,
         code,
@@ -104,7 +105,7 @@ app.put("/:id", authMiddleware, async (c) => {
 
     const id = c.req.param("id");
     const body = await c.req.json();
-    const { districtName, name, code, address, phone, sortOrder, status } = body;
+    const { districtId, districtName, name, code, address, phone, sortOrder, status } = body;
 
     const [existing] = await db.select().from(puskesmas).where(eq(puskesmas.id, id));
     if (!existing) {
@@ -114,6 +115,7 @@ app.put("/:id", authMiddleware, async (c) => {
     const [data] = await db
       .update(puskesmas)
       .set({
+        districtId: districtId !== undefined ? districtId : existing.districtId,
         districtName: districtName ?? existing.districtName,
         name: name ?? existing.name,
         code: code ?? existing.code,
