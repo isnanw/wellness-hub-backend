@@ -33,6 +33,7 @@ async function seed() {
   await db.delete(serviceCategories);
   await db.delete(users);
   await db.delete(puskesmas);
+  await db.delete(districts);
   await db.delete(generalInfo);
   await db.delete(roles);
 
