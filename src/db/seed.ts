@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { users, services, news, programs, registrations, schedules, districtHealthData, healthProgramCoverage, healthDiseaseData, puskesmas, healthStatistics, generalInfo, roles } from "./schema";
+import { users, services, news, programs, registrations, schedules, districtHealthData, healthProgramCoverage, healthDiseaseData, puskesmas, healthStatistics, generalInfo, roles, serviceCategories, newsCategories, programCategories } from "./schema";
 import "dotenv/config";
 
 function generateId(): string {
@@ -26,8 +26,11 @@ async function seed() {
   await db.delete(schedules);
   await db.delete(registrations);
   await db.delete(programs);
+  await db.delete(programCategories);
   await db.delete(news);
+  await db.delete(newsCategories);
   await db.delete(services);
+  await db.delete(serviceCategories);
   await db.delete(users);
   await db.delete(puskesmas);
   await db.delete(generalInfo);
@@ -135,6 +138,60 @@ async function seed() {
   ];
   await db.insert(users).values(usersData);
 
+  // Seed Service Categories
+  console.log("Seeding service categories...");
+  const serviceCategoriesData = [
+    {
+      id: generateId(),
+      name: "Kesehatan Ibu & Anak",
+      slug: slugify("Kesehatan Ibu & Anak"),
+      description: "Layanan kesehatan untuk ibu hamil, ibu menyusui, dan anak",
+      icon: "Baby",
+      sortOrder: 1,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Gizi",
+      slug: "gizi",
+      description: "Layanan konsultasi dan penanganan masalah gizi",
+      icon: "Apple",
+      sortOrder: 2,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Lansia",
+      slug: "lansia",
+      description: "Layanan kesehatan untuk lanjut usia",
+      icon: "Users",
+      sortOrder: 3,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Umum",
+      slug: "umum",
+      description: "Layanan kesehatan umum untuk semua kalangan",
+      icon: "Heart",
+      sortOrder: 4,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Gigi",
+      slug: "gigi",
+      description: "Layanan kesehatan gigi dan mulut",
+      icon: "Smile",
+      sortOrder: 5,
+      status: "active" as const,
+    },
+  ];
+  const insertedCategories = await db.insert(serviceCategories).values(serviceCategoriesData).returning();
+
+  // Map category names to IDs for service seeding
+  const categoryMap = new Map(insertedCategories.map(cat => [cat.name, cat.id]));
+
   // Seed Services
   console.log("Seeding services...");
   const servicesData = [
@@ -144,6 +201,7 @@ async function seed() {
       slug: "pemeriksaan-ibu-hamil",
       description: "Layanan pemeriksaan kehamilan rutin meliputi USG, pengecekan tekanan darah, dan konsultasi dengan bidan. Kami menyediakan pelayanan ANC (Antenatal Care) yang komprehensif untuk memastikan kesehatan ibu dan janin selama masa kehamilan.",
       category: "Kesehatan Ibu & Anak",
+      categoryId: categoryMap.get("Kesehatan Ibu & Anak"),
       image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800",
       location: "Poli KIA",
       schedule: "Senin - Jumat, 08:00 - 12:00",
@@ -156,6 +214,7 @@ async function seed() {
       slug: "imunisasi-anak",
       description: "Program imunisasi lengkap untuk anak usia 0-5 tahun sesuai jadwal imunisasi nasional. Meliputi vaksin BCG, Polio, DPT, Hepatitis B, Campak, dan vaksin lainnya dengan kualitas terjamin.",
       category: "Kesehatan Ibu & Anak",
+      categoryId: categoryMap.get("Kesehatan Ibu & Anak"),
       image: "https://images.unsplash.com/photo-1632053002928-1919605ee6f7?w=800",
       location: "Poli Anak",
       schedule: "Selasa & Kamis, 08:00 - 11:00",
@@ -168,6 +227,7 @@ async function seed() {
       slug: "konsultasi-gizi",
       description: "Konsultasi dengan ahli gizi untuk penanganan masalah gizi pada balita, ibu hamil, dan masyarakat umum. Layanan meliputi penilaian status gizi, penyusunan menu diet, dan edukasi gizi seimbang.",
       category: "Gizi",
+      categoryId: categoryMap.get("Gizi"),
       image: "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=800",
       location: "Poli Gizi",
       schedule: "Senin, Rabu, Jumat, 09:00 - 12:00",
@@ -178,16 +238,74 @@ async function seed() {
       id: generateId(),
       name: "Posyandu Lansia",
       slug: "posyandu-lansia",
-      description: "Pemeriksaan kesehatan rutin untuk lansia meliputi pengecekan tekanan darah, gula darah, kolesterol, dan senam lansia. Program ini bertujuan meningkatkan kualitas hidup lansia.",
+      description: "Layanan pemeriksaan kesehatan khusus untuk lanjut usia meliputi pengukuran tekanan darah, gula darah, kolesterol, serta senam lansia dan edukasi kesehatan untuk hidup lebih berkualitas di usia senja.",
       category: "Lansia",
-      image: "https://images.unsplash.com/photo-1447452001602-7090c7ab2db3?w=800",
-      location: "Balai Desa / Puskesmas",
-      schedule: "Rabu, 08:00 - 11:00",
+      categoryId: categoryMap.get("Lansia"),
+      image: "https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=800",
+      location: "Aula Puskesmas",
+      schedule: "Minggu II setiap bulan",
       puskesmasId: ilagaPuskesmas?.id,
       status: "active" as const,
     },
   ];
   await db.insert(services).values(servicesData);
+
+  // Seed News Categories
+  console.log("Seeding news categories...");
+  const newsCategoriesData = [
+    {
+      id: generateId(),
+      name: "Imunisasi",
+      slug: "imunisasi",
+      description: "Berita seputar program imunisasi",
+      sortOrder: 1,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Tips Kesehatan",
+      slug: "tips-kesehatan",
+      description: "Tips dan informasi kesehatan",
+      sortOrder: 2,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Teknologi",
+      slug: "teknologi",
+      description: "Berita teknologi kesehatan",
+      sortOrder: 3,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Program",
+      slug: "program",
+      description: "Informasi program kesehatan",
+      sortOrder: 4,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Pengumuman",
+      slug: "pengumuman",
+      description: "Pengumuman resmi",
+      sortOrder: 5,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Kegiatan",
+      slug: "kegiatan",
+      description: "Laporan kegiatan",
+      sortOrder: 6,
+      status: "active" as const,
+    },
+  ];
+  const insertedNewsCategories = await db.insert(newsCategories).values(newsCategoriesData).returning();
+
+  // Map news category names to IDs
+  const newsCategoryMap = new Map(insertedNewsCategories.map(cat => [cat.name, cat.id]));
 
   // Seed News
   console.log("Seeding news...");
@@ -207,6 +325,7 @@ async function seed() {
 </ul>
 <p>Masyarakat diharapkan membawa KMS (Kartu Menuju Sehat) dan buku KIA saat mengunjungi Posyandu.</p>`,
       category: "Pengumuman",
+      categoryId: newsCategoryMap.get("Pengumuman"),
       image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800",
       author: "Admin Puskesmas",
       status: "published" as const,
@@ -287,6 +406,60 @@ async function seed() {
   ];
   await db.insert(news).values(newsData);
 
+  // Seed Program Categories
+  console.log("Seeding program categories...");
+  const programCategoriesData = [
+    {
+      id: generateId(),
+      name: "Kesehatan Ibu & Anak",
+      slug: "kesehatan-ibu-anak",
+      description: "Program untuk ibu dan anak",
+      icon: "Baby",
+      sortOrder: 1,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Gizi",
+      slug: "gizi",
+      description: "Program gizi dan nutrisi",
+      icon: "Salad",
+      sortOrder: 2,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Imunisasi",
+      slug: "imunisasi",
+      description: "Program imunisasi",
+      icon: "Syringe",
+      sortOrder: 3,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Penyakit Menular",
+      slug: "penyakit-menular",
+      description: "Program pencegahan penyakit menular",
+      icon: "Shield",
+      sortOrder: 4,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      name: "Lansia",
+      slug: "lansia",
+      description: "Program kesehatan lansia",
+      icon: "Users",
+      sortOrder: 5,
+      status: "active" as const,
+    },
+  ];
+  const insertedProgramCategories = await db.insert(programCategories).values(programCategoriesData).returning();
+
+  // Map program category names to IDs
+  const programCategoryMap = new Map(insertedProgramCategories.map(cat => [cat.name, cat.id]));
+
   // Seed Programs
   console.log("Seeding programs...");
   const programsData = [
@@ -296,6 +469,7 @@ async function seed() {
       slug: "posyandu-balita",
       description: "Program pemantauan tumbuh kembang balita secara rutin setiap bulan. Kegiatan meliputi penimbangan, pengukuran tinggi badan, pemberian vitamin A, dan konsultasi gizi.",
       category: "Kesehatan Ibu & Anak",
+      categoryId: programCategoryMap.get("Kesehatan Ibu & Anak"),
       icon: "Baby",
       image: "https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=800",
       participants: 1250,

@@ -2,14 +2,19 @@ import { Hono } from "hono";
 import { db } from "../db";
 import { puskesmas } from "../db/schema";
 import { eq, asc, desc } from "drizzle-orm";
+import { authMiddleware } from "../middleware/auth";
 
 const app = new Hono();
 
 const generateId = () => crypto.randomUUID();
 
-// GET all puskesmas
-app.get("/", async (c) => {
+// GET all puskesmas (Protected: Admin Only or Internal Use)
+app.get("/", authMiddleware, async (c) => {
   try {
+    const user = c.get("user");
+    // Optional: Check if admin
+    // if (user.role !== "admin") return c.json({ error: "Forbidden" }, 403);
+
     const data = await db
       .select()
       .from(puskesmas)
@@ -21,7 +26,7 @@ app.get("/", async (c) => {
   }
 });
 
-// GET active puskesmas only (for public dropdown)
+// GET active puskesmas only (Public)
 app.get("/active", async (c) => {
   try {
     const data = await db
@@ -36,8 +41,8 @@ app.get("/active", async (c) => {
   }
 });
 
-// GET single puskesmas by ID
-app.get("/:id", async (c) => {
+// GET single puskesmas by ID (Public/Protected depending on use case. Let's make it Protected with Auth)
+app.get("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const [data] = await db.select().from(puskesmas).where(eq(puskesmas.id, id));
@@ -53,9 +58,14 @@ app.get("/:id", async (c) => {
   }
 });
 
-// POST create new puskesmas
-app.post("/", async (c) => {
+// POST create new puskesmas (Protected: Admin Only)
+app.post("/", authMiddleware, async (c) => {
   try {
+    const user = c.get("user");
+    if (user.role !== "admin") {
+      return c.json({ success: false, error: "Unauthorized: Admin only" }, 403);
+    }
+
     const body = await c.req.json();
     const { districtName, name, code, address, phone, sortOrder, status } = body;
 
@@ -84,9 +94,14 @@ app.post("/", async (c) => {
   }
 });
 
-// PUT update puskesmas
-app.put("/:id", async (c) => {
+// PUT update puskesmas (Protected: Admin Only)
+app.put("/:id", authMiddleware, async (c) => {
   try {
+    const user = c.get("user");
+    if (user.role !== "admin") {
+      return c.json({ success: false, error: "Unauthorized: Admin only" }, 403);
+    }
+
     const id = c.req.param("id");
     const body = await c.req.json();
     const { districtName, name, code, address, phone, sortOrder, status } = body;
@@ -118,9 +133,14 @@ app.put("/:id", async (c) => {
   }
 });
 
-// DELETE puskesmas
-app.delete("/:id", async (c) => {
+// DELETE puskesmas (Protected: Admin Only)
+app.delete("/:id", authMiddleware, async (c) => {
   try {
+    const user = c.get("user");
+    if (user.role !== "admin") {
+      return c.json({ success: false, error: "Unauthorized: Admin only" }, 403);
+    }
+
     const id = c.req.param("id");
 
     const [existing] = await db.select().from(puskesmas).where(eq(puskesmas.id, id));

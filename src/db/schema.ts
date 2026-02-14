@@ -51,17 +51,43 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Service Categories table (Master Data)
+export const serviceCategories = pgTable("service_categories", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  icon: text("icon"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  status: statusEnum("status").default("active").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Services table
 export const services = pgTable("services", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description").notNull(),
-  category: text("category").notNull(),
+  category: text("category").notNull(), // Keep for backward compatibility
+  categoryId: text("category_id").references(() => serviceCategories.id), // New FK
   image: text("image"),
   location: text("location").notNull(),
   schedule: text("schedule").notNull(),
   puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
+  status: statusEnum("status").default("active").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// News Categories table (Master Data)
+export const newsCategories = pgTable("news_categories", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  sortOrder: integer("sort_order").default(0).notNull(),
   status: statusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -74,12 +100,26 @@ export const news = pgTable("news", {
   slug: text("slug").notNull().unique(),
   excerpt: text("excerpt").notNull(),
   content: text("content").notNull(),
-  category: text("category").notNull(),
+  category: text("category").notNull(), // Keep for backward compatibility
+  categoryId: text("category_id").references(() => newsCategories.id), // New FK
   image: text("image"),
   author: text("author").notNull(),
   puskesmasId: text("puskesmas_id").references(() => puskesmas.id),
   status: newsStatusEnum("status").default("draft").notNull(),
   publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Program Categories table (Master Data)
+export const programCategories = pgTable("program_categories", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  icon: text("icon"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  status: statusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -90,7 +130,8 @@ export const programs = pgTable("programs", {
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   description: text("description").notNull(),
-  category: text("category").notNull(),
+  category: text("category").notNull(), // Keep for backward compatibility
+  categoryId: text("category_id").references(() => programCategories.id), // New FK
   icon: text("icon").notNull(),
   image: text("image"),
   participants: integer("participants").default(0).notNull(),
@@ -281,3 +322,9 @@ export type GeneralInfo = typeof generalInfo.$inferSelect;
 export type NewGeneralInfo = typeof generalInfo.$inferInsert;
 export type Role = typeof roles.$inferSelect;
 export type NewRole = typeof roles.$inferInsert;
+export type ServiceCategory = typeof serviceCategories.$inferSelect;
+export type NewServiceCategory = typeof serviceCategories.$inferInsert;
+export type NewsCategory = typeof newsCategories.$inferSelect;
+export type NewNewsCategory = typeof newsCategories.$inferInsert;
+export type ProgramCategory = typeof programCategories.$inferSelect;
+export type NewProgramCategory = typeof programCategories.$inferInsert;
