@@ -21,10 +21,22 @@ export const roles = pgTable("roles", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Master Districts table
+export const districts = pgTable("districts", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  code: text("code"),
+  coordinator: text("coordinator"),
+  contact: text("contact"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Master Puskesmas table
 export const puskesmas = pgTable("puskesmas", {
   id: text("id").primaryKey(),
-  districtName: text("district_name").notNull(),
+  districtName: text("district_name").notNull(), // Keep for backward compatibility or display
+  districtId: text("district_id").references(() => districts.id), // New FK
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
   address: text("address"),
@@ -316,6 +328,8 @@ export type HealthProgramCoverage = typeof healthProgramCoverage.$inferSelect;
 export type NewHealthProgramCoverage = typeof healthProgramCoverage.$inferInsert;
 export type HealthDiseaseData = typeof healthDiseaseData.$inferSelect;
 export type NewHealthDiseaseData = typeof healthDiseaseData.$inferInsert;
+export type District = typeof districts.$inferSelect;
+export type NewDistrict = typeof districts.$inferInsert;
 export type Puskesmas = typeof puskesmas.$inferSelect;
 export type NewPuskesmas = typeof puskesmas.$inferInsert;
 export type GeneralInfo = typeof generalInfo.$inferSelect;
