@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { users, services, news, programs, registrations, schedules, districtHealthData, healthProgramCoverage, healthDiseaseData, puskesmas, healthStatistics, generalInfo, roles, serviceCategories, newsCategories, programCategories } from "./schema";
+import { users, services, news, programs, registrations, schedules, districtHealthData, healthProgramCoverage, healthDiseaseData, puskesmas, healthStatistics, generalInfo, roles, serviceCategories, newsCategories, programCategories, districts } from "./schema";
 import "dotenv/config";
 
 function generateId(): string {
