@@ -64,6 +64,13 @@
       "when": 1770905639341,
       "tag": "0008_gray_shocker",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1771042328783,
+      "tag": "0009_soft_redwing",
+      "breakpoints": true
     }
   ]
 }

@@ -3,19 +3,38 @@ import { db } from "../db";
 import { services, type NewService } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
+import { getCookie } from "hono/cookie";
+import { verify } from "hono/jwt";
 
 const servicesRouter = new Hono();
 
-// Get all services (Protected: Dashboard List)
-servicesRouter.get("/", authMiddleware, async (c) => {
+// Get all services (Public + Optional Auth for Filtering)
+servicesRouter.get("/", async (c) => {
   try {
-    const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.puskesmasId;
+    let isPuskesmas = false;
+    let puskesmasId = "";
+
+    // Check for auth token manually to allow public access
+    const token = getCookie(c, "auth_token");
+    if (token) {
+      try {
+        const secret = process.env.JWT_SECRET || "your-secret-key";
+        const payload = await verify(token, secret, "HS256");
+        // @ts-ignore
+        if (payload.role === "puskesmas" && payload.puskesmasId) {
+          isPuskesmas = true;
+          // @ts-ignore
+          puskesmasId = payload.puskesmasId as string;
+        }
+      } catch (e) {
+        // Invalid token, proceed as public
+      }
+    }
 
     let query = db.select().from(services).$dynamic();
 
     if (isPuskesmas) {
-      query = query.where(eq(services.puskesmasId, user.puskesmasId!));
+      query = query.where(eq(services.puskesmasId, puskesmasId));
     }
 
     const result = await query;
