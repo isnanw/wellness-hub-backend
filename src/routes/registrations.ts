@@ -1,13 +1,14 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { unitKerja } from "../db/schema";
+import { unitKerja, registrations } from "../db/schema";
+import type { NewRegistration } from "../db/schema";
 import { eq, desc, and, sql, gte, lt } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 
 const registrationsRouter = new Hono();
 
-// Apply auth middleware
-registrationsRouter.use("*", authMiddleware);
+// Apply auth middleware selectively or handle public routes
+// registrationsRouter.use("*", authMiddleware); // REMOVED global auth
 
 // Helper function to generate queue number
 async function generateQueueNumber(unitKerjaId: string, service: string, appointmentDate: Date): Promise<string> {
@@ -18,7 +19,7 @@ async function generateQueueNumber(unitKerjaId: string, service: string, appoint
   const serviceCode = service.substring(0, 3).toUpperCase();
 
   // Get puskesmas code (extract from name, e.g., "Puskesmas Ilaga" -> "ILG")
-  const pkm = await db.select().from(puskesmas).where(eq(puskesmas.id, unitKerjaId));
+  const pkm = await db.select().from(unitKerja).where(eq(unitKerja.id, unitKerjaId));
   const pkmName = pkm[0]?.name?.replace(/Puskesmas\s*/i, "").trim() || "PKM";
   const pkmCode = pkmName.substring(0, 3).toUpperCase();
 
@@ -48,7 +49,7 @@ async function generateQueueNumber(unitKerjaId: string, service: string, appoint
 }
 
 // Get all registrations
-registrationsRouter.get("/", async (c) => {
+registrationsRouter.get("/", authMiddleware, async (c) => {
   try {
     const user = c.get("user");
     const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
@@ -70,10 +71,10 @@ registrationsRouter.get("/", async (c) => {
         status: registrations.status,
         createdAt: registrations.createdAt,
         updatedAt: registrations.updatedAt,
-        puskesmas: puskesmas.name, // Join result for frontend compatibility
+        puskesmas: unitKerja.name, // Join result for frontend compatibility
       })
       .from(registrations)
-      .leftJoin(puskesmas, eq(registrations.unitKerjaId, puskesmas.id))
+      .leftJoin(unitKerja, eq(registrations.unitKerjaId, unitKerja.id))
       .$dynamic();
 
     if (isPuskesmas) {
@@ -89,7 +90,7 @@ registrationsRouter.get("/", async (c) => {
 });
 
 // Get registrations by status
-registrationsRouter.get("/status/:status", async (c) => {
+registrationsRouter.get("/status/:status", authMiddleware, async (c) => {
   try {
     const user = c.get("user");
     const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
@@ -112,10 +113,10 @@ registrationsRouter.get("/status/:status", async (c) => {
         status: registrations.status,
         createdAt: registrations.createdAt,
         updatedAt: registrations.updatedAt,
-        puskesmas: puskesmas.name,
+        puskesmas: unitKerja.name,
       })
       .from(registrations)
-      .leftJoin(puskesmas, eq(registrations.unitKerjaId, puskesmas.id))
+      .leftJoin(unitKerja, eq(registrations.unitKerjaId, unitKerja.id))
       .$dynamic();
 
     const conditions = [eq(registrations.status, status)];
@@ -134,7 +135,7 @@ registrationsRouter.get("/status/:status", async (c) => {
 });
 
 // Get registration by ID
-registrationsRouter.get("/:id", async (c) => {
+registrationsRouter.get("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
@@ -157,10 +158,10 @@ registrationsRouter.get("/:id", async (c) => {
         status: registrations.status,
         createdAt: registrations.createdAt,
         updatedAt: registrations.updatedAt,
-        puskesmas: puskesmas.name,
+        puskesmas: unitKerja.name,
       })
       .from(registrations)
-      .leftJoin(puskesmas, eq(registrations.unitKerjaId, puskesmas.id))
+      .leftJoin(unitKerja, eq(registrations.unitKerjaId, unitKerja.id))
       .$dynamic();
 
     const conditions = [eq(registrations.id, id)];
@@ -211,10 +212,10 @@ registrationsRouter.get("/check/:nik", async (c) => {
         status: registrations.status,
         createdAt: registrations.createdAt,
         updatedAt: registrations.updatedAt,
-        puskesmas: puskesmas.name,
+        puskesmas: unitKerja.name,
       })
       .from(registrations)
-      .leftJoin(puskesmas, eq(registrations.unitKerjaId, puskesmas.id))
+      .leftJoin(unitKerja, eq(registrations.unitKerjaId, unitKerja.id))
       .where(eq(registrations.nik, nik))
       .orderBy(desc(registrations.createdAt));
 
@@ -226,26 +227,28 @@ registrationsRouter.get("/check/:nik", async (c) => {
 });
 
 // Create registration
+// Create registration (Public)
 registrationsRouter.post("/", async (c) => {
   try {
-    const user = c.get("user");
-    // Type definition needs to match request body. 
-    // Frontend sends 'puskesmas' string? Or we expect 'unitKerjaId'?
-    // Frontend likely still sends old format. We need to handle 'unitKerjaId' from body if updated, 
-    // OR force overwrite from user session.
-
-    const body = await c.req.json<any>(); // use any to be flexible with legacy body
+    // Attempt to get user from context, but don't crash if not present (optional auth logic can be added later if needed)
+    // For now, since this is public, we rely on body.unitKerjaId or unitKerja
+    const body = await c.req.json<any>();
     const id = crypto.randomUUID();
 
     // Determine Puskesmas ID
-    let finalPuskesmasId = body.unitKerjaId;
+    // Frontend sends 'unitKerja' or 'unitKerjaId' or 'puskesmasId'
+    let finalPuskesmasId = body.unitKerjaId || body.puskesmasId || body.unitKerja;
 
-    if (user.role === "puskesmas" && user.unitKerjaId) {
+    // Optional: If auth is re-enabled later, we can check user role here
+    /*
+    const user = c.get("user");
+    if (user && user.role === "puskesmas" && user.unitKerjaId) {
       finalPuskesmasId = user.unitKerjaId;
     }
+    */
 
     if (!finalPuskesmasId) {
-      return c.json({ error: "Puskesmas ID is required" }, 400);
+      return c.json({ error: "Unit Kerja ID is required" }, 400);
     }
 
     // Parse appointment date
@@ -297,7 +300,7 @@ registrationsRouter.post("/", async (c) => {
 });
 
 // Update registration
-registrationsRouter.put("/:id", async (c) => {
+registrationsRouter.put("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
@@ -328,7 +331,7 @@ registrationsRouter.put("/:id", async (c) => {
 });
 
 // Update registration status
-registrationsRouter.patch("/:id/status", async (c) => {
+registrationsRouter.patch("/:id/status", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
@@ -358,7 +361,7 @@ registrationsRouter.patch("/:id/status", async (c) => {
 });
 
 // Delete registration
-registrationsRouter.delete("/:id", async (c) => {
+registrationsRouter.delete("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
