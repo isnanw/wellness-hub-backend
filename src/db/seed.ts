@@ -37,6 +37,52 @@ async function seed() {
   await db.delete(generalInfo);
   await db.delete(roles);
 
+  // Seed Health Statistics
+  console.log("Seeding health statistics...");
+  const healthStatsData = [
+    {
+      id: generateId(),
+      label: "Angka Harapan Hidup",
+      value: "73.5",
+      icon: "Activity",
+      change: "+0.8%",
+      year: 2024,
+      sortOrder: 1,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      label: "Angka Kelahiran",
+      value: "12.4",
+      icon: "Baby",
+      change: "-2.1%",
+      year: 2024,
+      sortOrder: 2,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      label: "Cakupan Imunisasi",
+      value: "94.7",
+      icon: "Syringe",
+      change: "+3.2%",
+      year: 2024,
+      sortOrder: 3,
+      status: "active" as const,
+    },
+    {
+      id: generateId(),
+      label: "Fasilitas Kesehatan",
+      value: "156",
+      icon: "Building2",
+      change: "+12",
+      year: 2024,
+      sortOrder: 4,
+      status: "active" as const,
+    },
+  ];
+  await db.insert(healthStatistics).values(healthStatsData);
+
   // Seed Roles
   console.log("Seeding roles...");
   const rolesData = [

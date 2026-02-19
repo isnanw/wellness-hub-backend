@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { unitKerja } from "../db/schema";
+import { unitKerja, users, services, programs, news, registrations } from "../db/schema";
 import { count, desc, eq } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 
@@ -24,9 +24,9 @@ dashboardRouter.get("/stats", async (c) => {
         };
 
         // For Puskesmas table itself, if role is puskesmas, filtering by ID results in count 1
-        const puskesmasQuery = db.select({ count: count() }).from(puskesmas).$dynamic();
+        const puskesmasQuery = db.select({ count: count() }).from(unitKerja).$dynamic();
         if (isPuskesmas && pId) {
-            puskesmasQuery.where(eq(puskesmas.id, pId));
+            puskesmasQuery.where(eq(unitKerja.id, pId));
         }
 
         const [

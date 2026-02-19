@@ -15,7 +15,7 @@ healthReportsRouter.get("/statistics", async (c) => {
       .select()
       .from(healthStatistics)
       .orderBy(asc(healthStatistics.sortOrder));
-    return c.json(data);
+    return c.json({ data });
   } catch (error) {
     console.error("Error fetching health statistics:", error);
     return c.json({ error: "Failed to fetch health statistics" }, 500);
@@ -30,7 +30,7 @@ healthReportsRouter.get("/statistics/active", async (c) => {
       .from(healthStatistics)
       .where(eq(healthStatistics.status, "active"))
       .orderBy(asc(healthStatistics.sortOrder));
-    return c.json(data);
+    return c.json({ data });
   } catch (error) {
     console.error("Error fetching active health statistics:", error);
     return c.json({ error: "Failed to fetch health statistics" }, 500);
@@ -46,7 +46,7 @@ healthReportsRouter.get("/statistics/year/:year", async (c) => {
       .from(healthStatistics)
       .where(eq(healthStatistics.year, year))
       .orderBy(asc(healthStatistics.sortOrder));
-    return c.json(data);
+    return c.json({ data });
   } catch (error) {
     console.error("Error fetching health statistics by year:", error);
     return c.json({ error: "Failed to fetch health statistics" }, 500);
@@ -65,7 +65,7 @@ healthReportsRouter.get("/statistics/:id", async (c) => {
     if (!data) {
       return c.json({ error: "Health statistic not found" }, 404);
     }
-    return c.json(data);
+    return c.json({ data });
   } catch (error) {
     console.error("Error fetching health statistic:", error);
     return c.json({ error: "Failed to fetch health statistic" }, 500);
@@ -92,7 +92,7 @@ healthReportsRouter.post("/statistics", async (c) => {
       })
       .returning();
 
-    return c.json(newData, 201);
+    return c.json({ data: newData }, 201);
   } catch (error) {
     console.error("Error creating health statistic:", error);
     return c.json({ error: "Failed to create health statistic" }, 500);
@@ -123,7 +123,7 @@ healthReportsRouter.put("/statistics/:id", async (c) => {
     if (!updated) {
       return c.json({ error: "Health statistic not found" }, 404);
     }
-    return c.json(updated);
+    return c.json({ data: updated });
   } catch (error) {
     console.error("Error updating health statistic:", error);
     return c.json({ error: "Failed to update health statistic" }, 500);
@@ -158,7 +158,7 @@ healthReportsRouter.get("/districts", async (c) => {
       .select()
       .from(districtHealthData)
       .orderBy(asc(districtHealthData.sortOrder));
-    return c.json(data);
+    return c.json({ data });
   } catch (error) {
     console.error("Error fetching district health data:", error);
     return c.json({ error: "Failed to fetch district health data" }, 500);
@@ -173,7 +173,7 @@ healthReportsRouter.get("/districts/active", async (c) => {
       .from(districtHealthData)
       .where(eq(districtHealthData.status, "active"))
       .orderBy(asc(districtHealthData.sortOrder));
-    return c.json(data);
+    return c.json({ data });
   } catch (error) {
     console.error("Error fetching active district health data:", error);
     return c.json({ error: "Failed to fetch district health data" }, 500);
@@ -189,7 +189,7 @@ healthReportsRouter.get("/districts/year/:year", async (c) => {
       .from(districtHealthData)
       .where(eq(districtHealthData.year, year))
       .orderBy(asc(districtHealthData.sortOrder));
-    return c.json(data);
+    return c.json({ data });
   } catch (error) {
     console.error("Error fetching district health data by year:", error);
     return c.json({ error: "Failed to fetch district health data" }, 500);
@@ -208,7 +208,7 @@ healthReportsRouter.get("/districts/:id", async (c) => {
     if (!data) {
       return c.json({ error: "District health data not found" }, 404);
     }
-    return c.json(data);
+    return c.json({ data });
   } catch (error) {
     console.error("Error fetching district health data:", error);
     return c.json({ error: "Failed to fetch district health data" }, 500);
@@ -227,7 +227,7 @@ healthReportsRouter.post("/districts", async (c) => {
         id,
         districtName: body.districtName,
         population: body.population,
-        puskesmas: body.puskesmas || 0,
+        unitKerja: body.puskesmas || 0,
         hospitals: body.hospitals || 0,
         doctors: body.doctors || 0,
         nurses: body.nurses || 0,
@@ -238,7 +238,7 @@ healthReportsRouter.post("/districts", async (c) => {
       })
       .returning();
 
-    return c.json(newData, 201);
+    return c.json({ data: newData }, 201);
   } catch (error) {
     console.error("Error creating district health data:", error);
     return c.json({ error: "Failed to create district health data" }, 500);
@@ -256,7 +256,7 @@ healthReportsRouter.put("/districts/:id", async (c) => {
       .set({
         districtName: body.districtName,
         population: body.population,
-        puskesmas: body.puskesmas,
+        unitKerja: body.puskesmas,
         hospitals: body.hospitals,
         doctors: body.doctors,
         nurses: body.nurses,
@@ -272,7 +272,7 @@ healthReportsRouter.put("/districts/:id", async (c) => {
     if (!updated) {
       return c.json({ error: "District health data not found" }, 404);
     }
-    return c.json(updated);
+    return c.json({ data: updated });
   } catch (error) {
     console.error("Error updating district health data:", error);
     return c.json({ error: "Failed to update district health data" }, 500);
@@ -307,7 +307,7 @@ healthReportsRouter.get("/reports", async (c) => {
       .select()
       .from(healthReports)
       .orderBy(desc(healthReports.publishedAt));
-    return c.json(data);
+    return c.json({ data });
   } catch (error) {
     console.error("Error fetching health reports:", error);
     return c.json({ error: "Failed to fetch health reports" }, 500);
@@ -322,7 +322,7 @@ healthReportsRouter.get("/reports/active", async (c) => {
       .from(healthReports)
       .where(eq(healthReports.status, "active"))
       .orderBy(desc(healthReports.publishedAt));
-    return c.json(data);
+    return c.json({ data });
   } catch (error) {
     console.error("Error fetching active health reports:", error);
     return c.json({ error: "Failed to fetch health reports" }, 500);
@@ -338,7 +338,7 @@ healthReportsRouter.get("/reports/year/:year", async (c) => {
       .from(healthReports)
       .where(eq(healthReports.year, year))
       .orderBy(desc(healthReports.publishedAt));
-    return c.json(data);
+    return c.json({ data });
   } catch (error) {
     console.error("Error fetching health reports by year:", error);
     return c.json({ error: "Failed to fetch health reports" }, 500);
@@ -357,7 +357,7 @@ healthReportsRouter.get("/reports/:id", async (c) => {
     if (!data) {
       return c.json({ error: "Health report not found" }, 404);
     }
-    return c.json(data);
+    return c.json({ data });
   } catch (error) {
     console.error("Error fetching health report:", error);
     return c.json({ error: "Failed to fetch health report" }, 500);
@@ -386,7 +386,7 @@ healthReportsRouter.post("/reports", async (c) => {
       })
       .returning();
 
-    return c.json(newData, 201);
+    return c.json({ data: newData }, 201);
   } catch (error) {
     console.error("Error creating health report:", error);
     return c.json({ error: "Failed to create health report" }, 500);
@@ -419,7 +419,7 @@ healthReportsRouter.put("/reports/:id", async (c) => {
     if (!updated) {
       return c.json({ error: "Health report not found" }, 404);
     }
-    return c.json(updated);
+    return c.json({ data: updated });
   } catch (error) {
     console.error("Error updating health report:", error);
     return c.json({ error: "Failed to update health report" }, 500);
@@ -449,7 +449,7 @@ healthReportsRouter.patch("/reports/:id/download", async (c) => {
       .where(eq(healthReports.id, id))
       .returning();
 
-    return c.json(updated);
+    return c.json({ data: updated });
   } catch (error) {
     console.error("Error incrementing download count:", error);
     return c.json({ error: "Failed to increment download count" }, 500);
