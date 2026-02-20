@@ -48,6 +48,77 @@ async function generateQueueNumber(unitKerjaId: string, service: string, appoint
   return `${pkmCode}/${serviceCode}/${dateStr}/${paddedNum}`;
 }
 
+// Check registration status by queue number (Public)
+registrationsRouter.get("/public/check", async (c) => {
+  try {
+    const queueNumber = c.req.query("queueNumber");
+
+    if (!queueNumber) {
+      return c.json({ error: "Nomor Pendaftaran diperlukan" }, 400);
+    }
+
+    // Find the specific registration
+    const [registration] = await db
+      .select({
+        id: registrations.id,
+        queueNumber: registrations.queueNumber,
+        name: registrations.name,
+        nik: registrations.nik,
+        phone: registrations.phone,
+        email: registrations.email,
+        address: registrations.address,
+        service: registrations.service,
+        unitKerjaId: registrations.unitKerjaId,
+        appointmentDate: registrations.appointmentDate,
+        appointmentTime: registrations.appointmentTime,
+        complaint: registrations.complaint,
+        status: registrations.status,
+        createdAt: registrations.createdAt,
+        updatedAt: registrations.updatedAt,
+        puskesmas: unitKerja.name,
+        puskesmasAddress: unitKerja.address,
+      })
+      .from(registrations)
+      .leftJoin(unitKerja, eq(registrations.unitKerjaId, unitKerja.id))
+      .where(eq(registrations.queueNumber, queueNumber));
+
+    if (!registration) {
+      return c.json({ error: "Pendaftaran tidak ditemukan" }, 404);
+    }
+
+    // Find history based on NIK
+    const history = await db
+      .select({
+        id: registrations.id,
+        queueNumber: registrations.queueNumber,
+        service: registrations.service,
+        appointmentDate: registrations.appointmentDate,
+        status: registrations.status,
+        puskesmas: unitKerja.name,
+      })
+      .from(registrations)
+      .leftJoin(unitKerja, eq(registrations.unitKerjaId, unitKerja.id))
+      .where(
+        and(
+          eq(registrations.nik, registration.nik),
+          sql`${registrations.id} != ${registration.id}` // Exclude current registration from history
+        )
+      )
+      .orderBy(desc(registrations.appointmentDate))
+      .limit(5);
+
+    return c.json({
+      data: {
+        registration,
+        history
+      }
+    });
+  } catch (error) {
+    console.error("Error checking registration status:", error);
+    return c.json({ error: "Terjadi kesalahan saat memeriksa status" }, 500);
+  }
+});
+
 // Get all registrations
 registrationsRouter.get("/", authMiddleware, async (c) => {
   try {
@@ -306,11 +377,32 @@ registrationsRouter.put("/:id", authMiddleware, async (c) => {
     const user = c.get("user");
     const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
 
-    const body = await c.req.json<Partial<NewRegistration>>();
+    const body = await c.req.json<any>();
+
+    // Strict allowlist for update
+    const cleanUpdate: any = {};
+    if (body.name) cleanUpdate.name = body.name;
+    if (body.nik) cleanUpdate.nik = body.nik;
+    if (body.phone) cleanUpdate.phone = body.phone;
+    // Handle optional fields that might be empty string or null
+    if (body.email !== undefined) cleanUpdate.email = body.email;
+    if (body.address !== undefined) cleanUpdate.address = body.address;
+    if (body.service) cleanUpdate.service = body.service;
+
+    // UUID or null
+    if (body.unitKerjaId !== undefined) {
+      cleanUpdate.unitKerjaId = body.unitKerjaId === "" ? null : body.unitKerjaId;
+    }
+
+    if (body.appointmentDate) cleanUpdate.appointmentDate = new Date(body.appointmentDate);
+    if (body.appointmentTime) cleanUpdate.appointmentTime = body.appointmentTime;
+
+    if (body.complaint !== undefined) cleanUpdate.complaint = body.complaint;
+    if (body.status) cleanUpdate.status = body.status;
 
     let query = db
       .update(registrations)
-      .set({ ...body, updatedAt: new Date() });
+      .set({ ...cleanUpdate, updatedAt: new Date() });
 
     const conditions = [eq(registrations.id, id)];
     if (isPuskesmas) {

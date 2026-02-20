@@ -44,13 +44,13 @@ dashboardRouter.get("/stats", async (c) => {
             withFilter(db.select({ count: count() }).from(programs).$dynamic(), programs),
             withFilter(db.select({ count: count() }).from(news).$dynamic(), news),
             withFilter(db.select({ count: count() }).from(registrations).$dynamic(), registrations),
-            withFilter(db.select().from(registrations).orderBy(desc(registrations.createdAt)).limit(5).$dynamic(), registrations)
+            withFilter(db.select().from(registrations).$dynamic(), registrations).orderBy(desc(registrations.createdAt)).limit(5)
         ]);
 
         return c.json({
             data: {
                 users: usersCount[0].count,
-                puskesmas: puskesmasCount[0].count,
+                unitKerja: puskesmasCount[0].count,
                 services: servicesCount[0].count,
                 programs: programsCount[0].count,
                 news: newsCount[0].count,

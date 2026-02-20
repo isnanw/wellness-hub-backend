@@ -646,6 +646,7 @@ async function seed() {
       appointmentTime: "08:00",
       complaint: "Demam dan batuk selama 3 hari",
       status: "confirmed" as const,
+      createdAt: new Date("2024-01-20T08:00:00"),
     },
     {
       id: generateId(),
@@ -661,6 +662,7 @@ async function seed() {
       appointmentTime: "09:00",
       complaint: "Kontrol kehamilan bulan ke-7",
       status: "pending" as const,
+      createdAt: new Date("2024-01-21T09:00:00"),
     },
     {
       id: generateId(),
@@ -676,6 +678,7 @@ async function seed() {
       appointmentTime: "10:00",
       complaint: "Gigi berlubang dan nyeri",
       status: "completed" as const,
+      createdAt: new Date("2024-01-19T10:00:00"),
     },
     {
       id: generateId(),
@@ -691,6 +694,7 @@ async function seed() {
       appointmentTime: "08:30",
       complaint: "Imunisasi DPT untuk anak usia 2 bulan",
       status: "pending" as const,
+      createdAt: new Date("2024-01-22T08:30:00"),
     },
     {
       id: generateId(),
@@ -706,6 +710,7 @@ async function seed() {
       appointmentTime: "11:00",
       complaint: "Konsultasi diet untuk diabetes",
       status: "cancelled" as const,
+      createdAt: new Date("2024-01-18T11:00:00"),
     },
     {
       id: generateId(),
@@ -721,6 +726,7 @@ async function seed() {
       appointmentTime: "09:30",
       complaint: "Pusing dan mual",
       status: "confirmed" as const,
+      createdAt: new Date("2024-01-23T09:30:00"),
     },
   ];
   await db.insert(registrations).values(registrationsData);
