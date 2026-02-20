@@ -175,12 +175,14 @@ async function seed() {
   console.log("Seeding users...");
   if (!adminRole || !operatorRole || !unitKerjaRole) throw new Error("Roles not initialized properly");
 
+  const commonPassword = await Bun.password.hash("password123");
+
   const usersData = [
     {
       id: generateId(),
       name: "Administrator Dinkes",
       email: "admin@dinkes.go.id",
-      password: "password123",
+      password: commonPassword,
       roleId: adminRole.id,
       status: "active" as const,
       avatar: null,
@@ -190,7 +192,7 @@ async function seed() {
       id: generateId(),
       name: "Operator Dinkes",
       email: "operator@dinkes.go.id",
-      password: "password123",
+      password: commonPassword,
       roleId: operatorRole.id,
       status: "active" as const,
       avatar: null,
@@ -200,7 +202,7 @@ async function seed() {
       id: generateId(),
       name: "Admin Puskesmas Ilaga",
       email: "ilaga@puskesmas.go.id",
-      password: "password123",
+      password: commonPassword,
       roleId: unitKerjaRole.id,
       unitKerjaId: ilagaUnitKerja?.id,
       status: "active" as const,

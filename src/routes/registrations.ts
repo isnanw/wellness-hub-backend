@@ -253,8 +253,8 @@ registrationsRouter.get("/:id", authMiddleware, async (c) => {
   }
 });
 
-// Check registration status by NIK
-registrationsRouter.get("/check/:nik", async (c) => {
+// Check registration status by NIK (Protected: Only for Admin/Operator)
+registrationsRouter.get("/check/:nik", authMiddleware, async (c) => {
   try {
     const nik = c.req.param("nik");
     // Usually public route used by patients? If yes, should we auth?

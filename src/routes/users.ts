@@ -4,9 +4,17 @@ import { users, type NewUser, roles } from "../db/schema";
 import { eq } from "drizzle-orm";
 import { sign } from "hono/jwt";
 import { setCookie, deleteCookie } from "hono/cookie";
-import { getJwtSecret } from "../middleware/auth";
+import { getJwtSecret, authMiddleware } from "../middleware/auth";
 
 const usersRouter = new Hono();
+
+// Auth middleare for all routes, except login
+usersRouter.use("*", async (c, next) => {
+  if (c.req.path === "/api/users/login") {
+    return await next();
+  }
+  return authMiddleware(c, next);
+});
 
 // Login
 usersRouter.post("/login", async (c) => {
@@ -28,8 +36,10 @@ usersRouter.post("/login", async (c) => {
 
     const { user, role } = result[0];
 
-    // Simple password check (in production, use bcrypt)
-    if (user.password !== password) {
+    // Verify password using Bun's built-in secure hashing
+    const isPasswordValid = await Bun.password.verify(password, user.password!);
+
+    if (!isPasswordValid) {
       return c.json({ error: "Email atau password salah" }, 401);
     }
 
@@ -50,7 +60,7 @@ usersRouter.post("/login", async (c) => {
       role: role?.slug || "user",
       unitKerjaId: user.unitKerjaId,
       name: user.name,
-      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days
+      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
     };
 
     const token = await sign(payload, getJwtSecret());
@@ -61,7 +71,7 @@ usersRouter.post("/login", async (c) => {
       secure: true, // Always secure (requires HTTPS or localhost)
       sameSite: "Lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24, // 24 hours
     });
 
     // Return user without password
@@ -164,13 +174,22 @@ usersRouter.post("/", async (c) => {
     const body = await c.req.json<NewUser>();
     const id = crypto.randomUUID();
 
+    // Hash password before saving
+    let hashedPassword = body.password;
+    if (body.password) {
+      hashedPassword = await Bun.password.hash(body.password);
+    }
+
     const newUser: NewUser = {
       ...body,
       id,
+      password: hashedPassword,
     };
 
     const result = await db.insert(users).values(newUser).returning();
-    return c.json({ data: result[0] }, 201);
+    // Remove password from response
+    const { password: _, ...createdUser } = result[0];
+    return c.json({ data: createdUser }, 201);
   } catch (error) {
     console.error("Error creating user:", error);
     return c.json({ error: "Failed to create user" }, 500);
@@ -183,9 +202,16 @@ usersRouter.put("/:id", async (c) => {
     const id = c.req.param("id");
     const body = await c.req.json<Partial<NewUser>>();
 
+    const updateData: any = { ...body, updatedAt: new Date() };
+
+    // Hash password if it's being updated
+    if (body.password) {
+      updateData.password = await Bun.password.hash(body.password);
+    }
+
     const result = await db
       .update(users)
-      .set({ ...body, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(users.id, id))
       .returning();
 
@@ -193,7 +219,9 @@ usersRouter.put("/:id", async (c) => {
       return c.json({ error: "User not found" }, 404);
     }
 
-    return c.json({ data: result[0] });
+    // Remove password from response
+    const { password: _, ...updatedUser } = result[0];
+    return c.json({ data: updatedUser });
   } catch (error) {
     console.error("Error updating user:", error);
     return c.json({ error: "Failed to update user" }, 500);
@@ -214,6 +242,53 @@ usersRouter.delete("/:id", async (c) => {
   } catch (error) {
     console.error("Error deleting user:", error);
     return c.json({ error: "Failed to delete user" }, 500);
+  }
+});
+
+// Change password (self)
+usersRouter.post("/change-password", async (c) => {
+  try {
+    const user = c.get("user");
+    const { currentPassword, newPassword } = await c.req.json<{
+      currentPassword: string;
+      newPassword: string;
+    }>();
+
+    if (!currentPassword || !newPassword) {
+      return c.json({ error: "Password saat ini dan baru diperlukan" }, 400);
+    }
+
+    // Fetch user from DB to get the current hashed password
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id));
+
+    if (result.length === 0) {
+      return c.json({ error: "User tidak ditemukan" }, 404);
+    }
+
+    const userData = result[0];
+
+    // Verify current password
+    const isPasswordValid = await Bun.password.verify(currentPassword, userData.password!);
+    if (!isPasswordValid) {
+      return c.json({ error: "Password saat ini salah" }, 401);
+    }
+
+    // Hash new password
+    const hashedNewPassword = await Bun.password.hash(newPassword);
+
+    // Update password
+    await db
+      .update(users)
+      .set({ password: hashedNewPassword, updatedAt: new Date() })
+      .where(eq(users.id, user.id));
+
+    return c.json({ message: "Password berhasil diubah" });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return c.json({ error: "Gagal mengubah password" }, 500);
   }
 });
 
