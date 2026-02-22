@@ -1,10 +1,15 @@
 import { Hono } from "hono";
 import { db } from "../db";
 import { healthStatistics, districtHealthData, healthReports, healthProgramCoverage, healthDiseaseData } from "../db/schema";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { authMiddleware } from "../middleware/auth";
+import { getCookie } from "hono/cookie";
+import { verify } from "hono/jwt";
 
 const healthReportsRouter = new Hono();
+
+const isUnitKerjaRole = (role: string) => role === "unit_kerja";
 
 // ==================== HEALTH STATISTICS ====================
 
@@ -300,13 +305,18 @@ healthReportsRouter.delete("/districts/:id", async (c) => {
 
 // ==================== HEALTH REPORTS ====================
 
-// GET /api/health/reports - Get all health reports
-healthReportsRouter.get("/reports", async (c) => {
+// GET /api/health/reports — Admin: all reports (filtered by unitKerjaId if unit_kerja)
+healthReportsRouter.get("/reports", authMiddleware, async (c) => {
   try {
-    const data = await db
-      .select()
-      .from(healthReports)
-      .orderBy(desc(healthReports.publishedAt));
+    const user = c.get("user");
+    const isUK = isUnitKerjaRole(user.role) && user.unitKerjaId;
+
+    let query = db.select().from(healthReports).$dynamic();
+    if (isUK) {
+      query = query.where(eq(healthReports.unitKerjaId, user.unitKerjaId!));
+    }
+
+    const data = await query.orderBy(desc(healthReports.publishedAt));
     return c.json({ data });
   } catch (error) {
     console.error("Error fetching health reports:", error);
@@ -314,13 +324,38 @@ healthReportsRouter.get("/reports", async (c) => {
   }
 });
 
-// GET /api/health/reports/active - Get active health reports
+// GET /api/health/reports/public — Public: only public + active
+healthReportsRouter.get("/reports/public", async (c) => {
+  try {
+    const data = await db
+      .select()
+      .from(healthReports)
+      .where(
+        and(
+          eq(healthReports.status, "active"),
+          eq(healthReports.visibility, "public")
+        )
+      )
+      .orderBy(desc(healthReports.publishedAt));
+    return c.json({ data });
+  } catch (error) {
+    console.error("Error fetching public health reports:", error);
+    return c.json({ error: "Failed to fetch health reports" }, 500);
+  }
+});
+
+// GET /api/health/reports/active — alias for public (backward compat)
 healthReportsRouter.get("/reports/active", async (c) => {
   try {
     const data = await db
       .select()
       .from(healthReports)
-      .where(eq(healthReports.status, "active"))
+      .where(
+        and(
+          eq(healthReports.status, "active"),
+          eq(healthReports.visibility, "public")
+        )
+      )
       .orderBy(desc(healthReports.publishedAt));
     return c.json({ data });
   } catch (error) {
@@ -364,11 +399,18 @@ healthReportsRouter.get("/reports/:id", async (c) => {
   }
 });
 
-// POST /api/health/reports - Create health report
-healthReportsRouter.post("/reports", async (c) => {
+// POST /api/health/reports - Create health report (Protected)
+healthReportsRouter.post("/reports", authMiddleware, async (c) => {
   try {
+    const user = c.get("user");
     const body = await c.req.json();
     const id = nanoid();
+
+    // unit_kerja: always use their own unitKerjaId
+    let finalUnitKerjaId = body.unitKerjaId || null;
+    if (isUnitKerjaRole(user.role) && user.unitKerjaId) {
+      finalUnitKerjaId = user.unitKerjaId;
+    }
 
     const [newData] = await db
       .insert(healthReports)
@@ -381,6 +423,8 @@ healthReportsRouter.post("/reports", async (c) => {
         fileUrl: body.fileUrl,
         fileSize: body.fileSize,
         fileType: body.fileType || "PDF",
+        unitKerjaId: finalUnitKerjaId,
+        visibility: body.visibility || "public",
         publishedAt: body.publishedAt ? new Date(body.publishedAt) : new Date(),
         status: body.status || "active",
       })
@@ -388,16 +432,21 @@ healthReportsRouter.post("/reports", async (c) => {
 
     return c.json({ data: newData }, 201);
   } catch (error) {
-    console.error("Error creating health report:", error);
+    console.error("Error creating health report:", JSON.stringify(error, null, 2));
     return c.json({ error: "Failed to create health report" }, 500);
   }
 });
 
-// PUT /api/health/reports/:id - Update health report
-healthReportsRouter.put("/reports/:id", async (c) => {
+// PUT /api/health/reports/:id - Update health report (Protected)
+healthReportsRouter.put("/reports/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
+    const user = c.get("user");
+    const isUK = isUnitKerjaRole(user.role) && user.unitKerjaId;
     const body = await c.req.json();
+
+    const conditions = [eq(healthReports.id, id)];
+    if (isUK) conditions.push(eq(healthReports.unitKerjaId, user.unitKerjaId!));
 
     const [updated] = await db
       .update(healthReports)
@@ -409,16 +458,16 @@ healthReportsRouter.put("/reports/:id", async (c) => {
         fileUrl: body.fileUrl,
         fileSize: body.fileSize,
         fileType: body.fileType,
+        unitKerjaId: body.unitKerjaId,
+        visibility: body.visibility,
         publishedAt: body.publishedAt ? new Date(body.publishedAt) : undefined,
         status: body.status,
         updatedAt: new Date(),
       })
-      .where(eq(healthReports.id, id))
+      .where(and(...conditions))
       .returning();
 
-    if (!updated) {
-      return c.json({ error: "Health report not found" }, 404);
-    }
+    if (!updated) return c.json({ error: "Health report not found" }, 404);
     return c.json({ data: updated });
   } catch (error) {
     console.error("Error updating health report:", error);

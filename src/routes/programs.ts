@@ -8,21 +8,24 @@ import { verify } from "hono/jwt";
 
 const programsRouter = new Hono();
 
+// Helper: check if user is unit_kerja role
+const isUnitKerjaRole = (role: string) => role === "unit_kerja";
+
 // Get all programs (Public + Optional Auth for Filtering)
 programsRouter.get("/", async (c) => {
   try {
-    let isPuskesmas = false;
+    let isUnitKerja = false;
     let unitKerjaId = "";
 
     // Check for auth token manually to allow public access
     const token = getCookie(c, "auth_token");
     if (token) {
       try {
-        const secret = process.env.JWT_SECRET || "your-secret-key";
+        const secret = process.env.JWT_SECRET || "super-secret-key-wellness-hub-2024";
         const payload = await verify(token, secret, "HS256");
         // @ts-ignore
-        if (payload.role === "puskesmas" && payload.unitKerjaId) {
-          isPuskesmas = true;
+        if (isUnitKerjaRole(payload.role) && payload.unitKerjaId) {
+          isUnitKerja = true;
           // @ts-ignore
           unitKerjaId = payload.unitKerjaId as string;
         }
@@ -33,7 +36,7 @@ programsRouter.get("/", async (c) => {
 
     let query = db.select().from(programs).$dynamic();
 
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       query = query.where(eq(programs.unitKerjaId, unitKerjaId));
     }
 
@@ -108,33 +111,51 @@ programsRouter.post("/", authMiddleware, async (c) => {
       .replace(/\s+/g, "-")
       .trim();
 
-    // Handle unitKerjaId
-    let finalPuskesmasId = body.unitKerjaId;
-    if (user.role === "puskesmas" && user.unitKerjaId) {
-      finalPuskesmasId = user.unitKerjaId;
+    // If unit_kerja role, always use their own unitKerjaId
+    let finalUnitKerjaId = body.unitKerjaId;
+    if (isUnitKerjaRole(user.role) && user.unitKerjaId) {
+      finalUnitKerjaId = user.unitKerjaId;
+    }
+
+    // Convert date strings to Date objects (PostgreSQL requires Date, not string)
+    const startDate = body.startDate
+      ? new Date(body.startDate as unknown as string)
+      : null;
+    const endDate = body.endDate
+      ? new Date(body.endDate as unknown as string)
+      : null;
+
+    if (!startDate || isNaN(startDate.getTime())) {
+      return c.json({ error: "startDate is required and must be a valid date" }, 400);
+    }
+    if (!endDate || isNaN(endDate.getTime())) {
+      return c.json({ error: "endDate is required and must be a valid date" }, 400);
     }
 
     const newProgram: NewProgram = {
       ...body,
       id,
       slug,
-      unitKerjaId: finalPuskesmasId
+      startDate,
+      endDate,
+      unitKerjaId: finalUnitKerjaId ?? null,
     };
 
     const result = await db.insert(programs).values(newProgram).returning();
     return c.json({ data: result[0] }, 201);
   } catch (error) {
-    console.error("Error creating program:", error);
+    console.error("Error creating program:", JSON.stringify(error, null, 2));
     return c.json({ error: "Failed to create program" }, 500);
   }
 });
+
 
 // Update program (Protected)
 programsRouter.put("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+    const isUnitKerja = isUnitKerjaRole(user.role) && user.unitKerjaId;
 
     const body = await c.req.json<Partial<NewProgram>>();
 
@@ -151,7 +172,7 @@ programsRouter.put("/:id", authMiddleware, async (c) => {
       .set({ ...body, updatedAt: new Date() });
 
     const conditions = [eq(programs.id, id)];
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       conditions.push(eq(programs.unitKerjaId, user.unitKerjaId!));
     }
 
@@ -173,12 +194,12 @@ programsRouter.delete("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+    const isUnitKerja = isUnitKerjaRole(user.role) && user.unitKerjaId;
 
     let query = db.delete(programs);
 
     const conditions = [eq(programs.id, id)];
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       conditions.push(eq(programs.unitKerjaId, user.unitKerjaId!));
     }
 

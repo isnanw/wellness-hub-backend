@@ -8,21 +8,24 @@ import { verify } from "hono/jwt";
 
 const newsRouter = new Hono();
 
+// Helper: check if user is unit_kerja role
+const isUnitKerjaRole = (role: string) => role === "unit_kerja";
+
 // Get all news (Public + Optional Auth for Filtering)
 newsRouter.get("/", async (c) => {
   try {
-    let isPuskesmas = false;
+    let isUnitKerja = false;
     let unitKerjaId = "";
 
     // Check for auth token manually to allow public access
     const token = getCookie(c, "auth_token");
     if (token) {
       try {
-        const secret = process.env.JWT_SECRET || "your-secret-key";
+        const secret = process.env.JWT_SECRET || "super-secret-key-wellness-hub-2024";
         const payload = await verify(token, secret, "HS256");
         // @ts-ignore
-        if (payload.role === "puskesmas" && payload.unitKerjaId) {
-          isPuskesmas = true;
+        if (isUnitKerjaRole(payload.role) && payload.unitKerjaId) {
+          isUnitKerja = true;
           // @ts-ignore
           unitKerjaId = payload.unitKerjaId as string;
         }
@@ -33,7 +36,7 @@ newsRouter.get("/", async (c) => {
 
     let query = db.select().from(news).$dynamic();
 
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       query = query.where(eq(news.unitKerjaId, unitKerjaId));
     }
 
@@ -108,10 +111,10 @@ newsRouter.post("/", authMiddleware, async (c) => {
       .replace(/\s+/g, "-")
       .trim();
 
-    // Handle unitKerjaId
-    let finalPuskesmasId = body.unitKerjaId;
-    if (user.role === "puskesmas" && user.unitKerjaId) {
-      finalPuskesmasId = user.unitKerjaId;
+    // If unit_kerja role, always use their own unitKerjaId
+    let finalUnitKerjaId = body.unitKerjaId;
+    if (isUnitKerjaRole(user.role) && user.unitKerjaId) {
+      finalUnitKerjaId = user.unitKerjaId;
     }
 
     const newNews: NewNews = {
@@ -119,7 +122,7 @@ newsRouter.post("/", authMiddleware, async (c) => {
       id,
       slug,
       publishedAt: body.status === "published" ? new Date() : null,
-      unitKerjaId: finalPuskesmasId
+      unitKerjaId: finalUnitKerjaId
     };
 
     const result = await db.insert(news).values(newNews).returning();
@@ -135,7 +138,7 @@ newsRouter.put("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+    const isUnitKerja = isUnitKerjaRole(user.role) && user.unitKerjaId;
 
     const body = await c.req.json<Partial<NewNews>>();
 
@@ -154,7 +157,7 @@ newsRouter.put("/:id", authMiddleware, async (c) => {
       .set({ ...body, updatedAt: new Date() });
 
     const conditions = [eq(news.id, id)];
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       conditions.push(eq(news.unitKerjaId, user.unitKerjaId!));
     }
 
@@ -176,12 +179,12 @@ newsRouter.delete("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+    const isUnitKerja = isUnitKerjaRole(user.role) && user.unitKerjaId;
 
     let query = db.delete(news);
 
     const conditions = [eq(news.id, id)];
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       conditions.push(eq(news.unitKerjaId, user.unitKerjaId!));
     }
 

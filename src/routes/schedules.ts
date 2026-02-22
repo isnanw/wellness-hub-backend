@@ -2,27 +2,56 @@ import { Hono } from "hono";
 import { db } from "../db";
 import { schedules, type NewSchedule } from "../db/schema";
 import { eq, desc, gte, and } from "drizzle-orm";
+import { authMiddleware } from "../middleware/auth";
+import { getCookie } from "hono/cookie";
+import { verify } from "hono/jwt";
 
 const schedulesRouter = new Hono();
 
-// Get all schedules with optional filters
-// Get all schedules
+// Helper: check if user is unit_kerja role
+const isUnitKerjaRole = (role: string) => role === "unit_kerja";
+
+// Get all schedules with optional filters (Public + Optional Auth for Filtering)
 schedulesRouter.get("/", async (c) => {
   try {
     const district = c.req.query("district");
 
-    let whereClause = undefined;
+    // Check for auth token to apply unit_kerja filter
+    let isUnitKerja = false;
+    let unitKerjaId = "";
 
-    if (district && district !== "all") {
-      whereClause = eq(schedules.district, district);
+    const token = getCookie(c, "auth_token");
+    if (token) {
+      try {
+        const secret = process.env.JWT_SECRET || "super-secret-key-wellness-hub-2024";
+        const payload = await verify(token, secret, "HS256");
+        // @ts-ignore
+        if (isUnitKerjaRole(payload.role) && payload.unitKerjaId) {
+          isUnitKerja = true;
+          // @ts-ignore
+          unitKerjaId = payload.unitKerjaId as string;
+        }
+      } catch (e) {
+        // Invalid token, proceed as public
+      }
     }
 
-    const result = await db
-      .select()
-      .from(schedules)
-      .where(whereClause)
-      .orderBy(desc(schedules.date));
+    const conditions: any[] = [];
 
+    if (district && district !== "all") {
+      conditions.push(eq(schedules.district, district));
+    }
+
+    if (isUnitKerja && unitKerjaId) {
+      conditions.push(eq(schedules.unitKerjaId, unitKerjaId));
+    }
+
+    let query = db.select().from(schedules).$dynamic();
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    const result = await query.orderBy(desc(schedules.date));
     return c.json({ data: result });
   } catch (error) {
     console.error("Error fetching schedules:", error);
@@ -30,7 +59,7 @@ schedulesRouter.get("/", async (c) => {
   }
 });
 
-// Get upcoming schedules (date >= today)
+// Get upcoming schedules (date >= today) - Public
 schedulesRouter.get("/upcoming", async (c) => {
   try {
     const today = new Date();
@@ -97,29 +126,51 @@ schedulesRouter.get("/:id", async (c) => {
   }
 });
 
-// Create schedule
-schedulesRouter.post("/", async (c) => {
+// Create schedule (Protected)
+schedulesRouter.post("/", authMiddleware, async (c) => {
   try {
+    const user = c.get("user");
     const body = await c.req.json<NewSchedule>();
     const id = crypto.randomUUID();
+
+    // If unit_kerja role, always use their own unitKerjaId
+    let finalUnitKerjaId = body.unitKerjaId;
+    if (isUnitKerjaRole(user.role) && user.unitKerjaId) {
+      finalUnitKerjaId = user.unitKerjaId;
+    }
+
+    // Convert date string to Date object (PostgreSQL requires Date, not string)
+    const date = body.date
+      ? new Date(body.date as unknown as string)
+      : null;
+
+    if (!date || isNaN(date.getTime())) {
+      return c.json({ error: "date is required and must be a valid date" }, 400);
+    }
 
     const newSchedule: NewSchedule = {
       ...body,
       id,
+      date,
+      unitKerjaId: finalUnitKerjaId ?? null,
     };
 
     const result = await db.insert(schedules).values(newSchedule).returning();
     return c.json({ data: result[0] }, 201);
   } catch (error) {
-    console.error("Error creating schedule:", error);
+    console.error("Error creating schedule:", JSON.stringify(error, null, 2));
     return c.json({ error: "Failed to create schedule" }, 500);
   }
 });
 
-// Update schedule
-schedulesRouter.put("/:id", async (c) => {
+
+// Update schedule (Protected)
+schedulesRouter.put("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
+    const user = c.get("user");
+    const isUnitKerja = isUnitKerjaRole(user.role) && user.unitKerjaId;
+
     const body = await c.req.json<Partial<NewSchedule>>();
 
     // Convert date string to Date object
@@ -127,10 +178,15 @@ schedulesRouter.put("/:id", async (c) => {
       body.date = new Date(body.date);
     }
 
+    const conditions = [eq(schedules.id, id)];
+    if (isUnitKerja) {
+      conditions.push(eq(schedules.unitKerjaId, user.unitKerjaId!));
+    }
+
     const result = await db
       .update(schedules)
       .set({ ...body, updatedAt: new Date() })
-      .where(eq(schedules.id, id))
+      .where(and(...conditions))
       .returning();
 
     if (result.length === 0) {
@@ -144,16 +200,23 @@ schedulesRouter.put("/:id", async (c) => {
   }
 });
 
-// Update schedule status
-schedulesRouter.patch("/:id/status", async (c) => {
+// Update schedule status (Protected)
+schedulesRouter.patch("/:id/status", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
+    const user = c.get("user");
+    const isUnitKerja = isUnitKerjaRole(user.role) && user.unitKerjaId;
     const { status } = await c.req.json<{ status: "upcoming" | "ongoing" | "completed" | "cancelled" }>();
+
+    const conditions = [eq(schedules.id, id)];
+    if (isUnitKerja) {
+      conditions.push(eq(schedules.unitKerjaId, user.unitKerjaId!));
+    }
 
     const result = await db
       .update(schedules)
       .set({ status, updatedAt: new Date() })
-      .where(eq(schedules.id, id))
+      .where(and(...conditions))
       .returning();
 
     if (result.length === 0) {
@@ -196,11 +259,19 @@ schedulesRouter.patch("/:id/register", async (c) => {
   }
 });
 
-// Delete schedule
-schedulesRouter.delete("/:id", async (c) => {
+// Delete schedule (Protected)
+schedulesRouter.delete("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
-    const result = await db.delete(schedules).where(eq(schedules.id, id)).returning();
+    const user = c.get("user");
+    const isUnitKerja = isUnitKerjaRole(user.role) && user.unitKerjaId;
+
+    const conditions = [eq(schedules.id, id)];
+    if (isUnitKerja) {
+      conditions.push(eq(schedules.unitKerjaId, user.unitKerjaId!));
+    }
+
+    const result = await db.delete(schedules).where(and(...conditions)).returning();
 
     if (result.length === 0) {
       return c.json({ error: "Schedule not found" }, 404);

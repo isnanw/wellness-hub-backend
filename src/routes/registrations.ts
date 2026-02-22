@@ -18,9 +18,9 @@ async function generateQueueNumber(unitKerjaId: string, service: string, appoint
   // Get service code (first 3 letters uppercase)
   const serviceCode = service.substring(0, 3).toUpperCase();
 
-  // Get puskesmas code (extract from name, e.g., "Puskesmas Ilaga" -> "ILG")
+  // Get unit kerja code (extract from name, e.g., "Puskesmas Ilaga" -> "ILG")
   const pkm = await db.select().from(unitKerja).where(eq(unitKerja.id, unitKerjaId));
-  const pkmName = pkm[0]?.name?.replace(/Puskesmas\s*/i, "").trim() || "PKM";
+  const pkmName = pkm[0]?.name?.replace(/Puskesmas\s*/i, "").trim() || "UKJ";
   const pkmCode = pkmName.substring(0, 3).toUpperCase();
 
   // Get start and end of the appointment date
@@ -29,7 +29,7 @@ async function generateQueueNumber(unitKerjaId: string, service: string, appoint
   const endOfDay = new Date(appointmentDate);
   endOfDay.setHours(23, 59, 59, 999);
 
-  // Count existing registrations for same puskesmas, service, and date
+  // Count existing registrations for same unit kerja, service, and date
   const existingCount = await db
     .select({ count: sql<number>`count(*)` })
     .from(registrations)
@@ -123,7 +123,7 @@ registrationsRouter.get("/public/check", async (c) => {
 registrationsRouter.get("/", authMiddleware, async (c) => {
   try {
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+    const isUnitKerja = user.role === "unit_kerja" && user.unitKerjaId;
 
     let query = db
       .select({
@@ -148,7 +148,7 @@ registrationsRouter.get("/", authMiddleware, async (c) => {
       .leftJoin(unitKerja, eq(registrations.unitKerjaId, unitKerja.id))
       .$dynamic();
 
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       query = query.where(eq(registrations.unitKerjaId, user.unitKerjaId!));
     }
 
@@ -164,7 +164,7 @@ registrationsRouter.get("/", authMiddleware, async (c) => {
 registrationsRouter.get("/status/:status", authMiddleware, async (c) => {
   try {
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+    const isUnitKerja = user.role === "unit_kerja" && user.unitKerjaId;
     const status = c.req.param("status") as "pending" | "confirmed" | "completed" | "cancelled";
 
     let query = db
@@ -191,7 +191,7 @@ registrationsRouter.get("/status/:status", authMiddleware, async (c) => {
       .$dynamic();
 
     const conditions = [eq(registrations.status, status)];
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       conditions.push(eq(registrations.unitKerjaId, user.unitKerjaId!));
     }
 
@@ -210,7 +210,7 @@ registrationsRouter.get("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+    const isUnitKerja = user.role === "unit_kerja" && user.unitKerjaId;
 
     let query = db
       .select({
@@ -236,7 +236,7 @@ registrationsRouter.get("/:id", authMiddleware, async (c) => {
       .$dynamic();
 
     const conditions = [eq(registrations.id, id)];
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       conditions.push(eq(registrations.unitKerjaId, user.unitKerjaId!));
     }
 
@@ -297,28 +297,17 @@ registrationsRouter.get("/check/:nik", authMiddleware, async (c) => {
   }
 });
 
-// Create registration
 // Create registration (Public)
 registrationsRouter.post("/", async (c) => {
   try {
-    // Attempt to get user from context, but don't crash if not present (optional auth logic can be added later if needed)
-    // For now, since this is public, we rely on body.unitKerjaId or unitKerja
     const body = await c.req.json<any>();
     const id = crypto.randomUUID();
 
-    // Determine Puskesmas ID
-    // Frontend sends 'unitKerja' or 'unitKerjaId' or 'puskesmasId'
-    let finalPuskesmasId = body.unitKerjaId || body.puskesmasId || body.unitKerja;
+    // Determine Unit Kerja ID
+    // Frontend sends 'unitKerjaId' or 'unitKerja'
+    let finalUnitKerjaId = body.unitKerjaId || body.unitKerja;
 
-    // Optional: If auth is re-enabled later, we can check user role here
-    /*
-    const user = c.get("user");
-    if (user && user.role === "puskesmas" && user.unitKerjaId) {
-      finalPuskesmasId = user.unitKerjaId;
-    }
-    */
-
-    if (!finalPuskesmasId) {
+    if (!finalUnitKerjaId) {
       return c.json({ error: "Unit Kerja ID is required" }, 400);
     }
 
@@ -327,7 +316,7 @@ registrationsRouter.post("/", async (c) => {
 
     // Generate queue number
     const queueNumber = await generateQueueNumber(
-      finalPuskesmasId,
+      finalUnitKerjaId,
       body.service,
       appointmentDate
     );
@@ -335,15 +324,12 @@ registrationsRouter.post("/", async (c) => {
     const newRegistration: NewRegistration = {
       ...body,
       id,
-      unitKerjaId: finalPuskesmasId, // Overwrite/Ensure
+      unitKerjaId: finalUnitKerjaId,
       queueNumber,
       appointmentDate,
     };
 
-    // Remove potential 'puskesmas' string field if it exists in body before inserting to strict schema
-    // Drizzle ignores extra fields if not in schema usually, but better safe.
-    // Actually NewRegistration type ensures we only put valid fields.
-    // 'puskesmas' string property is NOT in NewRegistration anymore.
+    // Only insert valid fields that exist in the schema
 
     const result = await db.insert(registrations).values({
       id: newRegistration.id,
@@ -375,7 +361,7 @@ registrationsRouter.put("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+    const isUnitKerja = user.role === "unit_kerja" && user.unitKerjaId;
 
     const body = await c.req.json<any>();
 
@@ -405,7 +391,7 @@ registrationsRouter.put("/:id", authMiddleware, async (c) => {
       .set({ ...cleanUpdate, updatedAt: new Date() });
 
     const conditions = [eq(registrations.id, id)];
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       conditions.push(eq(registrations.unitKerjaId, user.unitKerjaId!));
     }
 
@@ -427,7 +413,7 @@ registrationsRouter.patch("/:id/status", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+    const isUnitKerja = user.role === "unit_kerja" && user.unitKerjaId;
     const { status } = await c.req.json<{ status: "pending" | "confirmed" | "completed" | "cancelled" }>();
 
     let query = db
@@ -435,7 +421,7 @@ registrationsRouter.patch("/:id/status", authMiddleware, async (c) => {
       .set({ status, updatedAt: new Date() });
 
     const conditions = [eq(registrations.id, id)];
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       conditions.push(eq(registrations.unitKerjaId, user.unitKerjaId!));
     }
 
@@ -457,12 +443,12 @@ registrationsRouter.delete("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+    const isUnitKerja = user.role === "unit_kerja" && user.unitKerjaId;
 
     let query = db.delete(registrations);
 
     const conditions = [eq(registrations.id, id)];
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       conditions.push(eq(registrations.unitKerjaId, user.unitKerjaId!));
     }
 

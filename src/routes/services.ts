@@ -8,10 +8,13 @@ import { verify } from "hono/jwt";
 
 const servicesRouter = new Hono();
 
+// Helper: check if user is unit_kerja role
+const isUnitKerjaRole = (role: string) => role === "unit_kerja";
+
 // Get all services (Public + Optional Auth for Filtering)
 servicesRouter.get("/", async (c) => {
   try {
-    let isPuskesmas = false;
+    let isUnitKerja = false;
     let unitKerjaId = "";
 
     // Check for auth token manually to allow public access
@@ -27,12 +30,12 @@ servicesRouter.get("/", async (c) => {
 
     if (token) {
       try {
-        const secret = process.env.JWT_SECRET || "your-secret-key";
+        const secret = process.env.JWT_SECRET || "super-secret-key-wellness-hub-2024";
         const payload = await verify(token, secret, "HS256");
 
         // @ts-ignore
-        if (payload.role === "puskesmas") {
-          isPuskesmas = true;
+        if (isUnitKerjaRole(payload.role)) {
+          isUnitKerja = true;
           // @ts-ignore
           unitKerjaId = payload.unitKerjaId as string;
         }
@@ -43,8 +46,8 @@ servicesRouter.get("/", async (c) => {
 
     let query = db.select().from(services).$dynamic();
 
-    if (isPuskesmas) {
-      // If puskesmas user has no ID, show nothing
+    if (isUnitKerja) {
+      // If unit_kerja user has no ID, show nothing
       if (!unitKerjaId) {
         return c.json({ data: [] });
       }
@@ -107,23 +110,23 @@ servicesRouter.post("/", authMiddleware, async (c) => {
       .replace(/\s+/g, "-")
       .trim();
 
-    // Handle unitKerjaId
-    let finalPuskesmasId = body.unitKerjaId;
-    if (user.role === "puskesmas" && user.unitKerjaId) {
-      finalPuskesmasId = user.unitKerjaId;
+    // If unit_kerja role, always use their own unitKerjaId
+    let finalUnitKerjaId = body.unitKerjaId;
+    if (isUnitKerjaRole(user.role) && user.unitKerjaId) {
+      finalUnitKerjaId = user.unitKerjaId;
     }
 
     const newService: NewService = {
       ...body,
       id,
       slug,
-      unitKerjaId: finalPuskesmasId
+      unitKerjaId: finalUnitKerjaId ?? null,
     };
 
     const result = await db.insert(services).values(newService).returning();
     return c.json({ data: result[0] }, 201);
   } catch (error) {
-    console.error("Error creating service:", error);
+    console.error("Error creating service:", JSON.stringify(error, null, 2));
     return c.json({ error: "Failed to create service" }, 500);
   }
 });
@@ -133,7 +136,7 @@ servicesRouter.put("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+    const isUnitKerja = isUnitKerjaRole(user.role) && user.unitKerjaId;
 
     const body = await c.req.json<Partial<NewService>>();
 
@@ -142,7 +145,7 @@ servicesRouter.put("/:id", authMiddleware, async (c) => {
       .set({ ...body, updatedAt: new Date() });
 
     const conditions = [eq(services.id, id)];
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       conditions.push(eq(services.unitKerjaId, user.unitKerjaId!));
     }
 
@@ -164,12 +167,12 @@ servicesRouter.delete("/:id", authMiddleware, async (c) => {
   try {
     const id = c.req.param("id");
     const user = c.get("user");
-    const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
+    const isUnitKerja = isUnitKerjaRole(user.role) && user.unitKerjaId;
 
     let query = db.delete(services);
 
     const conditions = [eq(services.id, id)];
-    if (isPuskesmas) {
+    if (isUnitKerja) {
       conditions.push(eq(services.unitKerjaId, user.unitKerjaId!));
     }
 

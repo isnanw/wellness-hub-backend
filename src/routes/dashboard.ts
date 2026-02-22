@@ -12,34 +12,43 @@ dashboardRouter.use("*", authMiddleware);
 dashboardRouter.get("/stats", async (c) => {
     try {
         const user = c.get("user");
-        const isPuskesmas = user.role === "puskesmas" && user.unitKerjaId;
-        const pId = user.unitKerjaId;
+        // Filter data berdasarkan role:
+        // - unit_kerja: hanya data milik unit kerja sendiri (berdasarkan unitKerjaId)
+        // - admin / operator: lihat semua data
+        const isUnitKerja = user.role === "unit_kerja" && user.unitKerjaId;
+        const ukId = user.unitKerjaId;
 
-        // Helper to apply puskesmas filter
+        // Helper to apply unit_kerja filter
         const withFilter = (query: any, table: any) => {
-            if (isPuskesmas && pId) {
-                return query.where(eq(table.unitKerjaId, pId));
+            if (isUnitKerja && ukId) {
+                return query.where(eq(table.unitKerjaId, ukId));
             }
             return query;
         };
 
-        // For Puskesmas table itself, if role is puskesmas, filtering by ID results in count 1
-        const puskesmasQuery = db.select({ count: count() }).from(unitKerja).$dynamic();
-        if (isPuskesmas && pId) {
-            puskesmasQuery.where(eq(unitKerja.id, pId));
+        // For unit_kerja role, count only their own unit kerja (= 1)
+        // For admin/operator: count all unit kerja
+        const unitKerjaQuery = db.select({ count: count() }).from(unitKerja).$dynamic();
+        if (isUnitKerja && ukId) {
+            unitKerjaQuery.where(eq(unitKerja.id, ukId));
         }
+
+        // For unit_kerja role, don't show user count (only admin/operator)
+        const usersQuery = isUnitKerja
+            ? db.select({ count: count() }).from(users).where(eq(users.unitKerjaId, ukId!))
+            : db.select({ count: count() }).from(users);
 
         const [
             usersCount,
-            puskesmasCount,
+            ukCount,
             servicesCount,
             programsCount,
             newsCount,
             registrationsCount,
             recentRegistrations
         ] = await Promise.all([
-            withFilter(db.select({ count: count() }).from(users).$dynamic(), users),
-            puskesmasQuery,
+            usersQuery,
+            unitKerjaQuery,
             withFilter(db.select({ count: count() }).from(services).$dynamic(), services),
             withFilter(db.select({ count: count() }).from(programs).$dynamic(), programs),
             withFilter(db.select({ count: count() }).from(news).$dynamic(), news),
@@ -50,7 +59,7 @@ dashboardRouter.get("/stats", async (c) => {
         return c.json({
             data: {
                 users: usersCount[0].count,
-                unitKerja: puskesmasCount[0].count,
+                unitKerja: ukCount[0].count,
                 services: servicesCount[0].count,
                 programs: programsCount[0].count,
                 news: newsCount[0].count,

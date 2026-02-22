@@ -10,6 +10,7 @@ export const scheduleStatusEnum = pgEnum("schedule_status", ["upcoming", "ongoin
 export const documentCategoryEnum = pgEnum("document_category", ["pendaftaran", "rujukan", "administrasi", "laporan"]);
 export const documentFormatEnum = pgEnum("document_format", ["PDF", "XLSX", "DOC", "DOCX"]);
 export const healthReportCategoryEnum = pgEnum("health_report_category", ["profil", "imunisasi", "penyakit", "spm", "gizi", "lainnya"]);
+export const visibilityEnum = pgEnum("visibility", ["public", "internal"]);
 
 // Roles table
 export const roles = pgTable("roles", {
@@ -208,6 +209,7 @@ export const documents = pgTable("documents", {
   fileSize: text("file_size").notNull(),
   downloadCount: integer("download_count").default(0).notNull(),
   unitKerjaId: text("unit_kerja_id").references(() => unitKerja.id),
+  visibility: visibilityEnum("visibility").default("public").notNull(), // public = tampil di halaman publik, internal = bank data
   status: statusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -261,6 +263,7 @@ export const healthReports = pgTable("health_reports", {
   fileType: text("file_type").default("PDF").notNull(),
   downloadCount: integer("download_count").default(0).notNull(),
   unitKerjaId: text("unit_kerja_id").references(() => unitKerja.id),
+  visibility: visibilityEnum("visibility").default("public").notNull(), // public = tampil di publik, internal = bank data
   publishedAt: timestamp("published_at"),
   status: statusEnum("status").default("active").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
