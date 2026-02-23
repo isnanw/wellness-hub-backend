@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 import { getCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
+import { handleError } from "../utils/errorHandler";
 
 const documentsRouter = new Hono();
 
@@ -42,8 +43,7 @@ documentsRouter.get("/", authMiddleware, async (c) => {
     const result = await query;
     return c.json({ data: result });
   } catch (error) {
-    console.error("Error fetching documents:", error);
-    return c.json({ error: "Failed to fetch documents" }, 500);
+    return handleError(c, "Failed to fetch documents", error);
   }
 });
 
@@ -61,8 +61,7 @@ documentsRouter.get("/public", async (c) => {
       );
     return c.json({ data: result });
   } catch (error) {
-    console.error("Error fetching public documents:", error);
-    return c.json({ error: "Failed to fetch documents" }, 500);
+    return handleError(c, "Failed to fetch documents", error);
   }
 });
 
@@ -80,8 +79,7 @@ documentsRouter.get("/active", async (c) => {
       );
     return c.json({ data: result });
   } catch (error) {
-    console.error("Error fetching active documents:", error);
-    return c.json({ error: "Failed to fetch documents" }, 500);
+    return handleError(c, "Failed to fetch documents", error);
   }
 });
 
@@ -93,8 +91,7 @@ documentsRouter.get("/code/:code", async (c) => {
     if (result.length === 0) return c.json({ error: "Document not found" }, 404);
     return c.json({ data: result[0] });
   } catch (error) {
-    console.error("Error fetching document:", error);
-    return c.json({ error: "Failed to fetch document" }, 500);
+    return handleError(c, "Failed to fetch document", error);
   }
 });
 
@@ -106,8 +103,7 @@ documentsRouter.get("/:id", async (c) => {
     if (result.length === 0) return c.json({ error: "Document not found" }, 404);
     return c.json({ data: result[0] });
   } catch (error) {
-    console.error("Error fetching document:", error);
-    return c.json({ error: "Failed to fetch document" }, 500);
+    return handleError(c, "Failed to fetch document", error);
   }
 });
 
@@ -134,8 +130,7 @@ documentsRouter.post("/", authMiddleware, async (c) => {
     const result = await db.insert(documents).values(newDocument).returning();
     return c.json({ data: result[0] }, 201);
   } catch (error) {
-    console.error("Error creating document:", JSON.stringify(error, null, 2));
-    return c.json({ error: "Failed to create document" }, 500);
+    return handleError(c, "Failed to create document", error);
   }
 });
 
@@ -159,8 +154,7 @@ documentsRouter.put("/:id", authMiddleware, async (c) => {
     if (result.length === 0) return c.json({ error: "Document not found" }, 404);
     return c.json({ data: result[0] });
   } catch (error) {
-    console.error("Error updating document:", error);
-    return c.json({ error: "Failed to update document" }, 500);
+    return handleError(c, "Failed to update document", error);
   }
 });
 
@@ -179,8 +173,7 @@ documentsRouter.patch("/:id/download", async (c) => {
 
     return c.json({ data: result[0] });
   } catch (error) {
-    console.error("Error updating download count:", error);
-    return c.json({ error: "Failed to update download count" }, 500);
+    return handleError(c, "Failed to update download count", error);
   }
 });
 
@@ -198,8 +191,7 @@ documentsRouter.delete("/:id", authMiddleware, async (c) => {
     if (result.length === 0) return c.json({ error: "Document not found" }, 404);
     return c.json({ message: "Document deleted successfully" });
   } catch (error) {
-    console.error("Error deleting document:", error);
-    return c.json({ error: "Failed to delete document" }, 500);
+    return handleError(c, "Failed to delete document", error);
   }
 });
 
