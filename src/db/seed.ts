@@ -838,20 +838,33 @@ async function seed() {
   console.log("Seeding district health data...");
   const currentYear = new Date().getFullYear();
 
-  const districtsData = districtNames.map((name, index) => ({
-    id: generateId(),
-    districtName: name,
-    population: String(Math.floor(Math.random() * 10000) + 2000), // Random population 2000-12000
-    puskesmas: name === "Ilaga" ? 2 : 1, // Ilaga as capital has 2 puskesmas
-    hospitals: name === "Ilaga" ? 1 : 0, // Only capital has hospital
-    doctors: name === "Ilaga" ? 5 : Math.floor(Math.random() * 3) + 1,
-    nurses: Math.floor(Math.random() * 8) + 3,
-    midwives: Math.floor(Math.random() * 5) + 2,
-    year: currentYear,
-    sortOrder: index,
-    status: "active" as const,
-    unitKerjaId: ilagaUnitKerja?.id,
-  }));
+  // Data aktual dari database (tahun 2026)
+  const districtsData = [
+    { id: generateId(), districtName: "Amungkalpia", population: "8410", unitKerja: 0, hospitals: 0, doctors: 3, nurses: 8, midwives: 5, year: currentYear, sortOrder: 1, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Beoga", population: "9028", unitKerja: 0, hospitals: 0, doctors: 3, nurses: 7, midwives: 6, year: currentYear, sortOrder: 2, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Beoga Barat", population: "3835", unitKerja: 0, hospitals: 0, doctors: 3, nurses: 9, midwives: 3, year: currentYear, sortOrder: 3, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Beoga Timur", population: "8004", unitKerja: 0, hospitals: 0, doctors: 2, nurses: 5, midwives: 3, year: currentYear, sortOrder: 4, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Bina", population: "7148", unitKerja: 0, hospitals: 0, doctors: 1, nurses: 10, midwives: 4, year: currentYear, sortOrder: 5, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Dervos", population: "7083", unitKerja: 0, hospitals: 0, doctors: 3, nurses: 8, midwives: 2, year: currentYear, sortOrder: 6, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Doufo", population: "8744", unitKerja: 0, hospitals: 0, doctors: 3, nurses: 4, midwives: 5, year: currentYear, sortOrder: 7, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Erelmakawia", population: "10430", unitKerja: 0, hospitals: 0, doctors: 1, nurses: 9, midwives: 6, year: currentYear, sortOrder: 8, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Gome", population: "10939", unitKerja: 0, hospitals: 0, doctors: 1, nurses: 4, midwives: 2, year: currentYear, sortOrder: 9, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Gome Utara", population: "9045", unitKerja: 0, hospitals: 0, doctors: 3, nurses: 8, midwives: 5, year: currentYear, sortOrder: 10, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Ilaga", population: "10184", unitKerja: 0, hospitals: 1, doctors: 5, nurses: 4, midwives: 3, year: currentYear, sortOrder: 11, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Ilaga Utara", population: "6955", unitKerja: 0, hospitals: 0, doctors: 3, nurses: 4, midwives: 4, year: currentYear, sortOrder: 12, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Kembru", population: "2489", unitKerja: 0, hospitals: 0, doctors: 1, nurses: 5, midwives: 4, year: currentYear, sortOrder: 13, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Lambewi", population: "4401", unitKerja: 0, hospitals: 0, doctors: 1, nurses: 6, midwives: 5, year: currentYear, sortOrder: 14, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Mabugi", population: "4142", unitKerja: 0, hospitals: 0, doctors: 1, nurses: 6, midwives: 4, year: currentYear, sortOrder: 15, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Mage'abume", population: "5278", unitKerja: 0, hospitals: 0, doctors: 3, nurses: 3, midwives: 6, year: currentYear, sortOrder: 16, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Ogamanim", population: "4249", unitKerja: 0, hospitals: 0, doctors: 1, nurses: 9, midwives: 2, year: currentYear, sortOrder: 17, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Omukia", population: "4554", unitKerja: 0, hospitals: 0, doctors: 2, nurses: 7, midwives: 6, year: currentYear, sortOrder: 18, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Oneri", population: "4293", unitKerja: 0, hospitals: 0, doctors: 2, nurses: 10, midwives: 6, year: currentYear, sortOrder: 19, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Pogoma", population: "5124", unitKerja: 0, hospitals: 0, doctors: 2, nurses: 5, midwives: 2, year: currentYear, sortOrder: 20, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Sinak", population: "7034", unitKerja: 0, hospitals: 0, doctors: 3, nurses: 9, midwives: 6, year: currentYear, sortOrder: 21, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Sinak Barat", population: "9651", unitKerja: 0, hospitals: 0, doctors: 3, nurses: 6, midwives: 2, year: currentYear, sortOrder: 22, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Wangbe", population: "11513", unitKerja: 0, hospitals: 0, doctors: 2, nurses: 7, midwives: 6, year: currentYear, sortOrder: 23, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), districtName: "Yugumuak", population: "10216", unitKerja: 0, hospitals: 0, doctors: 2, nurses: 7, midwives: 4, year: currentYear, sortOrder: 24, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+  ];
   await db.insert(districtHealthData).values(districtsData);
 
   // Seed Health Program Coverage
@@ -880,17 +893,16 @@ async function seed() {
   ];
   await db.insert(healthDiseaseData).values(diseaseData);
 
-  // Seed Health Statistics
-  console.log("Seeding health statistics...");
+  // Statistik aktual tahun 2026 dari database
   const healthStatisticsData = [
-    { id: generateId(), label: "Total Populasi", value: "194.570", icon: "Users", change: "+1.2%", year: currentYear, sortOrder: 0, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
-    { id: generateId(), label: "Jumlah Faskes", value: "30", icon: "Hospital", change: " ", year: currentYear, sortOrder: 1, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
-    { id: generateId(), label: "Tenaga Kesehatan", value: "450", icon: "Stethoscope", change: "+5", year: currentYear, sortOrder: 2, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
-    { id: generateId(), label: "Angka Harapan Hidup", value: "65.2 thn", icon: "HeartPulse", change: "+0.3 thn", year: currentYear, sortOrder: 3, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
-    { id: generateId(), label: "Kunjungan Rawat Jalan", value: "12.345", icon: "Activity", change: "+3.5%", year: currentYear, sortOrder: 4, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
-    { id: generateId(), label: "Kelahiran Hidup", value: "3.456", icon: "Baby", change: "-0.5%", year: currentYear, sortOrder: 5, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
-    { id: generateId(), label: "Cakupan Imunisasi (DPT)", value: "85.7%", icon: "ShieldCheck", change: "+1.2%", year: currentYear, sortOrder: 6, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
-    { id: generateId(), label: "Kasus Gizi Buruk (Balita)", value: "128", icon: "TriangleAlert", change: "-10", year: currentYear, sortOrder: 7, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), label: "Total Populasi", value: "178.070 Jiwa", icon: "Users", change: "+1.2%", year: currentYear, sortOrder: 1, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), label: "Jumlah Faskes", value: "9", icon: "Building2", change: " ", year: currentYear, sortOrder: 2, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), label: "Tenaga Kesehatan", value: "450", icon: "Stethoscope", change: "+5", year: currentYear, sortOrder: 3, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), label: "Angka Harapan Hidup", value: "65.2 thn", icon: "HeartPulse", change: "+0.3 thn", year: currentYear, sortOrder: 4, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), label: "Kunjungan Rawat Jalan", value: "12.345", icon: "Activity", change: "+3.5%", year: currentYear, sortOrder: 5, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), label: "Kelahiran Hidup", value: "3.456", icon: "Baby", change: "-0.5%", year: currentYear, sortOrder: 6, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), label: "Cakupan Imunisasi (DPT)", value: "85.7%", icon: "ShieldCheck", change: "+1.2%", year: currentYear, sortOrder: 7, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
+    { id: generateId(), label: "Kasus Gizi Buruk (Balita)", value: "128", icon: "TriangleAlert", change: "-10", year: currentYear, sortOrder: 8, status: "active" as const, unitKerjaId: ilagaUnitKerja?.id },
   ];
 
   console.log("Seeding general info...");
