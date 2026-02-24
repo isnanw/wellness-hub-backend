@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { users, services, news, programs, registrations, schedules, districtHealthData, healthProgramCoverage, healthDiseaseData, unitKerja, healthStatistics, generalInfo, roles, serviceCategories, newsCategories, programCategories, districts } from "./schema";
+import { users, services, news, programs, registrations, schedules, districtHealthData, healthProgramCoverage, healthDiseaseData, unitKerja, healthStatistics, generalInfo, roles, serviceCategories, newsCategories, programCategories, districts, documents } from "./schema";
 import "dotenv/config";
 
 function generateId(): string {
@@ -32,6 +32,7 @@ async function seed() {
   await db.delete(services);
   await db.delete(serviceCategories);
   await db.delete(users);
+  await db.delete(documents);
   await db.delete(unitKerja);
   await db.delete(districts);
   await db.delete(generalInfo);
@@ -133,32 +134,15 @@ async function seed() {
   // Seed Master Unit Kerja
   console.log("Seeding unit kerja...");
   const unitKerjaRawData = [
-    { districtName: "Agandugume", name: "Puskesmas Agandugume", code: "PKM-AGD", sortOrder: 0, status: "active" as const },
-    { districtName: "Amungkalpia", name: "Puskesmas Amungkalpia", code: "PKM-AMK", sortOrder: 1, status: "active" as const },
-    { districtName: "Beoga", name: "Puskesmas Beoga", code: "PKM-BGO", sortOrder: 2, status: "active" as const },
-    { districtName: "Beoga Barat", name: "Puskesmas Beoga Barat", code: "PKM-BGB", sortOrder: 3, status: "active" as const },
-    { districtName: "Beoga Timur", name: "Puskesmas Beoga Timur", code: "PKM-BGT", sortOrder: 4, status: "active" as const },
-    { districtName: "Bina", name: "Puskesmas Bina", code: "PKM-BNA", sortOrder: 5, status: "active" as const },
-    { districtName: "Dervos", name: "Puskesmas Dervos", code: "PKM-DVS", sortOrder: 6, status: "active" as const },
-    { districtName: "Doufo", name: "Puskesmas Doufo", code: "PKM-DFO", sortOrder: 7, status: "active" as const },
-    { districtName: "Erelmakawia", name: "Puskesmas Erelmakawia", code: "PKM-ERM", sortOrder: 8, status: "active" as const },
-    { districtName: "Gome", name: "Puskesmas Gome", code: "PKM-GME", sortOrder: 9, status: "active" as const },
-    { districtName: "Gome Utara", name: "Puskesmas Gome Utara", code: "PKM-GMU", sortOrder: 10, status: "active" as const },
-    { districtName: "Ilaga", name: "Puskesmas Ilaga", code: "PKM-ILG", sortOrder: 11, status: "active" as const },
-    { districtName: "Ilaga", name: "Puskesmas Ilaga Utama", code: "PKM-ILG2", sortOrder: 12, status: "active" as const },
-    { districtName: "Ilaga Utara", name: "Puskesmas Ilaga Utara", code: "PKM-ILU", sortOrder: 13, status: "active" as const },
-    { districtName: "Kembru", name: "Puskesmas Kembru", code: "PKM-KBR", sortOrder: 14, status: "active" as const },
-    { districtName: "Lambewi", name: "Puskesmas Lambewi", code: "PKM-LBW", sortOrder: 15, status: "active" as const },
-    { districtName: "Mabugi", name: "Puskesmas Mabugi", code: "PKM-MBG", sortOrder: 16, status: "active" as const },
-    { districtName: "Mage'abume", name: "Puskesmas Mage'abume", code: "PKM-MGB", sortOrder: 17, status: "active" as const },
-    { districtName: "Ogamanim", name: "Puskesmas Ogamanim", code: "PKM-OGM", sortOrder: 18, status: "active" as const },
-    { districtName: "Omukia", name: "Puskesmas Omukia", code: "PKM-OMK", sortOrder: 19, status: "active" as const },
-    { districtName: "Oneri", name: "Puskesmas Oneri", code: "PKM-ONR", sortOrder: 20, status: "active" as const },
-    { districtName: "Pogoma", name: "Puskesmas Pogoma", code: "PKM-PGM", sortOrder: 21, status: "active" as const },
-    { districtName: "Sinak", name: "Puskesmas Sinak", code: "PKM-SNK", sortOrder: 22, status: "active" as const },
-    { districtName: "Sinak Barat", name: "Puskesmas Sinak Barat", code: "PKM-SNB", sortOrder: 23, status: "active" as const },
-    { districtName: "Wangbe", name: "Puskesmas Wangbe", code: "PKM-WGB", sortOrder: 24, status: "active" as const },
-    { districtName: "Yugumuak", name: "Puskesmas Yugumuak", code: "PKM-YGM", sortOrder: 25, status: "active" as const },
+    { districtName: "Doufo", name: "Puskesmas Douvo", code: "PKM-DVO", sortOrder: 0, status: "active" as const },
+    { districtName: "Gome", name: "Puskesmas Gome", code: "PKM-GME", sortOrder: 1, status: "active" as const },
+    { districtName: "Agandugume", name: "Puskesmas Agandugume", code: "PKM-AGD", sortOrder: 2, status: "active" as const },
+    { districtName: "Pogoma", name: "Puskesmas Pogoma", code: "PKM-PGM", sortOrder: 3, status: "active" as const },
+    { districtName: "Ilaga", name: "Puskesmas Ilaga", code: "PKM-ILG", sortOrder: 4, status: "active" as const },
+    { districtName: "Sinak", name: "Puskesmas Sinak", code: "PKM-SNK", sortOrder: 5, status: "active" as const },
+    { districtName: "Wangbe", name: "Puskesmas Wangbe", code: "PKM-WGB", sortOrder: 6, status: "active" as const },
+    { districtName: "Beoga", name: "Puskesmas Beoga", code: "PKM-BGO", sortOrder: 7, status: "active" as const },
+    { districtName: "Ilaga", name: "RSUD Ilaga", code: "RSUD-ILG", sortOrder: 8, status: "active" as const },
   ];
 
   const unitKerjaData = unitKerjaRawData.map(p => ({
