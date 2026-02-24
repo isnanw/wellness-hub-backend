@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { news, type NewNews } from "../db/schema";
+import { news, unitKerja, type NewNews } from "../db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 import { getCookie } from "hono/cookie";
@@ -34,7 +34,27 @@ newsRouter.get("/", async (c) => {
       }
     }
 
-    let query = db.select().from(news).$dynamic();
+    let query = db
+      .select({
+        id: news.id,
+        title: news.title,
+        slug: news.slug,
+        excerpt: news.excerpt,
+        content: news.content,
+        category: news.category,
+        categoryId: news.categoryId,
+        image: news.image,
+        author: news.author,
+        unitKerjaId: news.unitKerjaId,
+        unitKerjaName: unitKerja.name,
+        status: news.status,
+        publishedAt: news.publishedAt,
+        createdAt: news.createdAt,
+        updatedAt: news.updatedAt,
+      })
+      .from(news)
+      .leftJoin(unitKerja, eq(news.unitKerjaId, unitKerja.id))
+      .$dynamic();
 
     if (isUnitKerja) {
       query = query.where(eq(news.unitKerjaId, unitKerjaId));
@@ -52,8 +72,25 @@ newsRouter.get("/", async (c) => {
 newsRouter.get("/published", async (c) => {
   try {
     const result = await db
-      .select()
+      .select({
+        id: news.id,
+        title: news.title,
+        slug: news.slug,
+        excerpt: news.excerpt,
+        content: news.content,
+        category: news.category,
+        categoryId: news.categoryId,
+        image: news.image,
+        author: news.author,
+        unitKerjaId: news.unitKerjaId,
+        unitKerjaName: unitKerja.name,
+        status: news.status,
+        publishedAt: news.publishedAt,
+        createdAt: news.createdAt,
+        updatedAt: news.updatedAt,
+      })
       .from(news)
+      .leftJoin(unitKerja, eq(news.unitKerjaId, unitKerja.id))
       .where(eq(news.status, "published"))
       .orderBy(desc(news.publishedAt));
     return c.json({ data: result });
@@ -67,7 +104,27 @@ newsRouter.get("/published", async (c) => {
 newsRouter.get("/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    const result = await db.select().from(news).where(eq(news.id, id));
+    const result = await db
+      .select({
+        id: news.id,
+        title: news.title,
+        slug: news.slug,
+        excerpt: news.excerpt,
+        content: news.content,
+        category: news.category,
+        categoryId: news.categoryId,
+        image: news.image,
+        author: news.author,
+        unitKerjaId: news.unitKerjaId,
+        unitKerjaName: unitKerja.name,
+        status: news.status,
+        publishedAt: news.publishedAt,
+        createdAt: news.createdAt,
+        updatedAt: news.updatedAt,
+      })
+      .from(news)
+      .leftJoin(unitKerja, eq(news.unitKerjaId, unitKerja.id))
+      .where(eq(news.id, id));
 
     if (result.length === 0) {
       return c.json({ error: "News not found" }, 404);
@@ -84,7 +141,27 @@ newsRouter.get("/:id", async (c) => {
 newsRouter.get("/slug/:slug", async (c) => {
   try {
     const slug = c.req.param("slug");
-    const result = await db.select().from(news).where(eq(news.slug, slug));
+    const result = await db
+      .select({
+        id: news.id,
+        title: news.title,
+        slug: news.slug,
+        excerpt: news.excerpt,
+        content: news.content,
+        category: news.category,
+        categoryId: news.categoryId,
+        image: news.image,
+        author: news.author,
+        unitKerjaId: news.unitKerjaId,
+        unitKerjaName: unitKerja.name,
+        status: news.status,
+        publishedAt: news.publishedAt,
+        createdAt: news.createdAt,
+        updatedAt: news.updatedAt,
+      })
+      .from(news)
+      .leftJoin(unitKerja, eq(news.unitKerjaId, unitKerja.id))
+      .where(eq(news.slug, slug));
 
     if (result.length === 0) {
       return c.json({ error: "News not found" }, 404);

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { programs, type NewProgram } from "../db/schema";
+import { programs, unitKerja, type NewProgram } from "../db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 import { getCookie } from "hono/cookie";
@@ -34,7 +34,29 @@ programsRouter.get("/", async (c) => {
       }
     }
 
-    let query = db.select().from(programs).$dynamic();
+    let query = db
+      .select({
+        id: programs.id,
+        name: programs.name,
+        slug: programs.slug,
+        description: programs.description,
+        category: programs.category,
+        categoryId: programs.categoryId,
+        icon: programs.icon,
+        image: programs.image,
+        participants: programs.participants,
+        target: programs.target,
+        startDate: programs.startDate,
+        endDate: programs.endDate,
+        unitKerjaId: programs.unitKerjaId,
+        unitKerjaName: unitKerja.name,
+        status: programs.status,
+        createdAt: programs.createdAt,
+        updatedAt: programs.updatedAt,
+      })
+      .from(programs)
+      .leftJoin(unitKerja, eq(programs.unitKerjaId, unitKerja.id))
+      .$dynamic();
 
     if (isUnitKerja) {
       query = query.where(eq(programs.unitKerjaId, unitKerjaId));
@@ -52,8 +74,27 @@ programsRouter.get("/", async (c) => {
 programsRouter.get("/active", async (c) => {
   try {
     const result = await db
-      .select()
+      .select({
+        id: programs.id,
+        name: programs.name,
+        slug: programs.slug,
+        description: programs.description,
+        category: programs.category,
+        categoryId: programs.categoryId,
+        icon: programs.icon,
+        image: programs.image,
+        participants: programs.participants,
+        target: programs.target,
+        startDate: programs.startDate,
+        endDate: programs.endDate,
+        unitKerjaId: programs.unitKerjaId,
+        unitKerjaName: unitKerja.name,
+        status: programs.status,
+        createdAt: programs.createdAt,
+        updatedAt: programs.updatedAt,
+      })
       .from(programs)
+      .leftJoin(unitKerja, eq(programs.unitKerjaId, unitKerja.id))
       .where(eq(programs.status, "active"))
       .orderBy(desc(programs.createdAt));
     return c.json({ data: result });
@@ -67,7 +108,29 @@ programsRouter.get("/active", async (c) => {
 programsRouter.get("/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    const result = await db.select().from(programs).where(eq(programs.id, id));
+    const result = await db
+      .select({
+        id: programs.id,
+        name: programs.name,
+        slug: programs.slug,
+        description: programs.description,
+        category: programs.category,
+        categoryId: programs.categoryId,
+        icon: programs.icon,
+        image: programs.image,
+        participants: programs.participants,
+        target: programs.target,
+        startDate: programs.startDate,
+        endDate: programs.endDate,
+        unitKerjaId: programs.unitKerjaId,
+        unitKerjaName: unitKerja.name,
+        status: programs.status,
+        createdAt: programs.createdAt,
+        updatedAt: programs.updatedAt,
+      })
+      .from(programs)
+      .leftJoin(unitKerja, eq(programs.unitKerjaId, unitKerja.id))
+      .where(eq(programs.id, id));
 
     if (result.length === 0) {
       return c.json({ error: "Program not found" }, 404);
@@ -84,7 +147,29 @@ programsRouter.get("/:id", async (c) => {
 programsRouter.get("/slug/:slug", async (c) => {
   try {
     const slug = c.req.param("slug");
-    const result = await db.select().from(programs).where(eq(programs.slug, slug));
+    const result = await db
+      .select({
+        id: programs.id,
+        name: programs.name,
+        slug: programs.slug,
+        description: programs.description,
+        category: programs.category,
+        categoryId: programs.categoryId,
+        icon: programs.icon,
+        image: programs.image,
+        participants: programs.participants,
+        target: programs.target,
+        startDate: programs.startDate,
+        endDate: programs.endDate,
+        unitKerjaId: programs.unitKerjaId,
+        unitKerjaName: unitKerja.name,
+        status: programs.status,
+        createdAt: programs.createdAt,
+        updatedAt: programs.updatedAt,
+      })
+      .from(programs)
+      .leftJoin(unitKerja, eq(programs.unitKerjaId, unitKerja.id))
+      .where(eq(programs.slug, slug));
 
     if (result.length === 0) {
       return c.json({ error: "Program not found" }, 404);

@@ -60,7 +60,7 @@ usersRouter.post("/login", async (c) => {
       role: role?.slug || "user",
       unitKerjaId: user.unitKerjaId,
       name: user.name,
-      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24 hours
+      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 12, // 12 hours
     };
 
     const token = await sign(payload, getJwtSecret());
@@ -71,7 +71,7 @@ usersRouter.post("/login", async (c) => {
       secure: true, // Always secure (requires HTTPS or localhost)
       sameSite: "Lax",
       path: "/",
-      maxAge: 60 * 60 * 24, // 24 hours
+      maxAge: 60 * 60 * 12, // 12 hours
     });
 
     // Return user without password

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { services, type NewService } from "../db/schema";
+import { services, unitKerja, type NewService } from "../db/schema";
 import { eq, and } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 import { getCookie } from "hono/cookie";
@@ -10,6 +10,24 @@ const servicesRouter = new Hono();
 
 // Helper: check if user is unit_kerja role
 const isUnitKerjaRole = (role: string) => role === "unit_kerja";
+
+// Fields to select (includes unit kerja name via LEFT JOIN)
+const selectFields = {
+  id: services.id,
+  name: services.name,
+  slug: services.slug,
+  description: services.description,
+  category: services.category,
+  categoryId: services.categoryId,
+  image: services.image,
+  location: services.location,
+  schedule: services.schedule,
+  unitKerjaId: services.unitKerjaId,
+  unitKerjaName: unitKerja.name,
+  status: services.status,
+  createdAt: services.createdAt,
+  updatedAt: services.updatedAt,
+};
 
 // Get all services (Public + Optional Auth for Filtering)
 servicesRouter.get("/", async (c) => {
@@ -32,7 +50,6 @@ servicesRouter.get("/", async (c) => {
       try {
         const secret = process.env.JWT_SECRET || "super-secret-key-wellness-hub-2024";
         const payload = await verify(token, secret, "HS256");
-
         // @ts-ignore
         if (isUnitKerjaRole(payload.role)) {
           isUnitKerja = true;
@@ -44,13 +61,14 @@ servicesRouter.get("/", async (c) => {
       }
     }
 
-    let query = db.select().from(services).$dynamic();
+    let query = db
+      .select(selectFields)
+      .from(services)
+      .leftJoin(unitKerja, eq(services.unitKerjaId, unitKerja.id))
+      .$dynamic();
 
     if (isUnitKerja) {
-      // If unit_kerja user has no ID, show nothing
-      if (!unitKerjaId) {
-        return c.json({ data: [] });
-      }
+      if (!unitKerjaId) return c.json({ data: [] });
       query = query.where(eq(services.unitKerjaId, unitKerjaId));
     }
 
@@ -66,7 +84,11 @@ servicesRouter.get("/", async (c) => {
 servicesRouter.get("/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    const result = await db.select().from(services).where(eq(services.id, id));
+    const result = await db
+      .select(selectFields)
+      .from(services)
+      .leftJoin(unitKerja, eq(services.unitKerjaId, unitKerja.id))
+      .where(eq(services.id, id));
 
     if (result.length === 0) {
       return c.json({ error: "Service not found" }, 404);
@@ -83,7 +105,11 @@ servicesRouter.get("/:id", async (c) => {
 servicesRouter.get("/slug/:slug", async (c) => {
   try {
     const slug = c.req.param("slug");
-    const result = await db.select().from(services).where(eq(services.slug, slug));
+    const result = await db
+      .select(selectFields)
+      .from(services)
+      .leftJoin(unitKerja, eq(services.unitKerjaId, unitKerja.id))
+      .where(eq(services.slug, slug));
 
     if (result.length === 0) {
       return c.json({ error: "Service not found" }, 404);
