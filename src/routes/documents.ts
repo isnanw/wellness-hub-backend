@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../db";
 import { documents, unitKerja, type NewDocument } from "../db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 import { getCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
@@ -40,7 +40,7 @@ documentsRouter.get("/", authMiddleware, async (c) => {
       query = query.where(eq(documents.unitKerjaId, user.unitKerjaId!));
     }
 
-    const result = await query;
+    const result = await query.orderBy(desc(documents.createdAt), desc(documents.id));
     return c.json({ data: result });
   } catch (error) {
     return handleError(c, "Failed to fetch documents", error);
@@ -58,7 +58,8 @@ documentsRouter.get("/public", async (c) => {
           eq(documents.status, "active"),
           eq(documents.visibility, "public")
         )
-      );
+      )
+      .orderBy(desc(documents.createdAt));
     return c.json({ data: result });
   } catch (error) {
     return handleError(c, "Failed to fetch documents", error);
@@ -76,7 +77,8 @@ documentsRouter.get("/active", async (c) => {
           eq(documents.status, "active"),
           eq(documents.visibility, "public")
         )
-      );
+      )
+      .orderBy(desc(documents.createdAt));
     return c.json({ data: result });
   } catch (error) {
     return handleError(c, "Failed to fetch documents", error);

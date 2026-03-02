@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { schedules, type NewSchedule } from "../db/schema";
+import { schedules, unitKerja, type NewSchedule } from "../db/schema";
 import { eq, desc, gte, and } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 import { getCookie } from "hono/cookie";
@@ -46,7 +46,30 @@ schedulesRouter.get("/", async (c) => {
       conditions.push(eq(schedules.unitKerjaId, unitKerjaId));
     }
 
-    let query = db.select().from(schedules).$dynamic();
+    let query = db
+      .select({
+        id: schedules.id,
+        title: schedules.title,
+        type: schedules.type,
+        district: schedules.district,
+        location: schedules.location,
+        address: schedules.address,
+        unitKerjaId: schedules.unitKerjaId,
+        unitKerjaName: unitKerja.name,
+        date: schedules.date,
+        startTime: schedules.startTime,
+        endTime: schedules.endTime,
+        capacity: schedules.capacity,
+        registered: schedules.registered,
+        officer: schedules.officer,
+        description: schedules.description,
+        status: schedules.status,
+        createdAt: schedules.createdAt,
+        updatedAt: schedules.updatedAt,
+      })
+      .from(schedules)
+      .leftJoin(unitKerja, eq(schedules.unitKerjaId, unitKerja.id))
+      .$dynamic();
     if (conditions.length > 0) {
       query = query.where(and(...conditions));
     }
@@ -66,8 +89,28 @@ schedulesRouter.get("/upcoming", async (c) => {
     today.setHours(0, 0, 0, 0);
 
     const result = await db
-      .select()
+      .select({
+        id: schedules.id,
+        title: schedules.title,
+        type: schedules.type,
+        district: schedules.district,
+        location: schedules.location,
+        address: schedules.address,
+        unitKerjaId: schedules.unitKerjaId,
+        unitKerjaName: unitKerja.name,
+        date: schedules.date,
+        startTime: schedules.startTime,
+        endTime: schedules.endTime,
+        capacity: schedules.capacity,
+        registered: schedules.registered,
+        officer: schedules.officer,
+        description: schedules.description,
+        status: schedules.status,
+        createdAt: schedules.createdAt,
+        updatedAt: schedules.updatedAt,
+      })
       .from(schedules)
+      .leftJoin(unitKerja, eq(schedules.unitKerjaId, unitKerja.id))
       .where(gte(schedules.date, today))
       .orderBy(schedules.date);
     return c.json({ data: result });

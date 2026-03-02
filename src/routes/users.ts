@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../db";
 import { users, type NewUser, roles } from "../db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { sign } from "hono/jwt";
 import { setCookie, deleteCookie } from "hono/cookie";
 import { getJwtSecret, authMiddleware } from "../middleware/auth";
@@ -126,7 +126,8 @@ usersRouter.get("/", async (c) => {
         unitKerjaId: users.unitKerjaId,
       })
       .from(users)
-      .leftJoin(roles, eq(users.roleId, roles.id));
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .orderBy(desc(users.createdAt), desc(users.id));
 
     return c.json({ data: result });
   } catch (error) {

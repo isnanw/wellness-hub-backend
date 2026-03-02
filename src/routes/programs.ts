@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../db";
 import { programs, unitKerja, type NewProgram } from "../db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, asc, and } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 import { getCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
@@ -62,7 +62,7 @@ programsRouter.get("/", async (c) => {
       query = query.where(eq(programs.unitKerjaId, unitKerjaId));
     }
 
-    const result = await query.orderBy(desc(programs.createdAt));
+    const result = await query.orderBy(desc(programs.createdAt), desc(programs.id));
     return c.json({ data: result });
   } catch (error) {
     console.error("Error fetching programs:", error);
@@ -96,7 +96,7 @@ programsRouter.get("/active", async (c) => {
       .from(programs)
       .leftJoin(unitKerja, eq(programs.unitKerjaId, unitKerja.id))
       .where(eq(programs.status, "active"))
-      .orderBy(desc(programs.createdAt));
+      .orderBy(desc(programs.createdAt), desc(programs.id));
     return c.json({ data: result });
   } catch (error) {
     console.error("Error fetching active programs:", error);

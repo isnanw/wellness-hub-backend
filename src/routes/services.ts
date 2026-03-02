@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../db";
 import { services, unitKerja, type NewService } from "../db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 import { getCookie } from "hono/cookie";
 import { verify } from "hono/jwt";
@@ -72,7 +72,7 @@ servicesRouter.get("/", async (c) => {
       query = query.where(eq(services.unitKerjaId, unitKerjaId));
     }
 
-    const result = await query;
+    const result = await query.orderBy(desc(services.createdAt), desc(services.id));
     return c.json({ data: result });
   } catch (error) {
     console.error("Error fetching services:", error);
