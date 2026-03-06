@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { districts } from "../db/schema";
-import { eq, asc } from "drizzle-orm";
+import { districts, unitKerja } from "../db/schema";
+import { eq, asc, count, or } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 
 const app = new Hono();
@@ -121,6 +121,23 @@ app.delete("/:id", authMiddleware, async (c) => {
         const [existing] = await db.select().from(districts).where(eq(districts.id, id));
         if (!existing) {
             return c.json({ success: false, error: "District not found" }, 404);
+        }
+
+        // Check if any unit kerja references this district (via FK or legacy name field)
+        const [usageResult] = await db
+            .select({ count: count() })
+            .from(unitKerja)
+            .where(or(
+                eq(unitKerja.districtId, id),
+                eq(unitKerja.districtName, existing.name)
+            ));
+
+        if (usageResult.count > 0) {
+            return c.json({
+                success: false,
+                error: `Distrik "${existing.name}" tidak dapat dihapus karena masih digunakan oleh ${usageResult.count} Unit Kerja.`,
+                inUse: true,
+            }, 409);
         }
 
         await db.delete(districts).where(eq(districts.id, id));

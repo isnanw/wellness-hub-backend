@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { programCategories } from "../db/schema";
-import { eq, asc } from "drizzle-orm";
+import { programCategories, programs } from "../db/schema";
+import { eq, asc, count, or } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 
 const app = new Hono();
@@ -126,6 +126,22 @@ app.delete("/:id", authMiddleware, async (c) => {
         const [existing] = await db.select().from(programCategories).where(eq(programCategories.id, id));
         if (!existing) {
             return c.json({ success: false, error: "Program category not found" }, 404);
+        }
+
+        // Check if category is used by any programs (via FK or legacy text field)
+        const [usageResult] = await db
+            .select({ count: count() })
+            .from(programs)
+            .where(or(
+                eq(programs.categoryId, id),
+                eq(programs.category, existing.name)
+            ));
+        if (usageResult.count > 0) {
+            return c.json({
+                success: false,
+                error: `Kategori "${existing.name}" tidak dapat dihapus karena masih digunakan oleh ${usageResult.count} program.`,
+                inUse: true,
+            }, 409);
         }
 
         await db.delete(programCategories).where(eq(programCategories.id, id));

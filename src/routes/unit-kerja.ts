@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db } from "../db";
-import { unitKerja } from "../db/schema";
-import { eq, asc, desc } from "drizzle-orm";
+import { unitKerja, users, services, news, programs, registrations, schedules, documents, healthReports } from "../db/schema";
+import { eq, asc, count } from "drizzle-orm";
 import { authMiddleware } from "../middleware/auth";
 
 const app = new Hono();
@@ -153,6 +153,38 @@ app.delete("/:id", authMiddleware, async (c) => {
     const [existing] = await db.select().from(unitKerja).where(eq(unitKerja.id, id));
     if (!existing) {
       return c.json({ success: false, error: "Puskesmas not found" }, 404);
+    }
+
+    // --- Check all related tables ---
+    const checks = await Promise.all([
+      db.select({ count: count() }).from(users).where(eq(users.unitKerjaId, id)),
+      db.select({ count: count() }).from(services).where(eq(services.unitKerjaId, id)),
+      db.select({ count: count() }).from(news).where(eq(news.unitKerjaId, id)),
+      db.select({ count: count() }).from(programs).where(eq(programs.unitKerjaId, id)),
+      db.select({ count: count() }).from(registrations).where(eq(registrations.unitKerjaId, id)),
+      db.select({ count: count() }).from(schedules).where(eq(schedules.unitKerjaId, id)),
+      db.select({ count: count() }).from(documents).where(eq(documents.unitKerjaId, id)),
+      db.select({ count: count() }).from(healthReports).where(eq(healthReports.unitKerjaId, id)),
+    ]);
+
+    const [userCount, serviceCount, newsCount, programCount, regCount, schedCount, docCount, reportCount] = checks.map(r => r[0].count);
+
+    const usageDetails: string[] = [];
+    if (userCount > 0) usageDetails.push(`${userCount} pengguna`);
+    if (serviceCount > 0) usageDetails.push(`${serviceCount} layanan`);
+    if (newsCount > 0) usageDetails.push(`${newsCount} berita`);
+    if (programCount > 0) usageDetails.push(`${programCount} program`);
+    if (regCount > 0) usageDetails.push(`${regCount} pendaftaran`);
+    if (schedCount > 0) usageDetails.push(`${schedCount} jadwal`);
+    if (docCount > 0) usageDetails.push(`${docCount} dokumen`);
+    if (reportCount > 0) usageDetails.push(`${reportCount} laporan kesehatan`);
+
+    if (usageDetails.length > 0) {
+      return c.json({
+        success: false,
+        error: `Unit Kerja "${existing.name}" tidak dapat dihapus karena masih digunakan oleh: ${usageDetails.join(", ")}.`,
+        inUse: true,
+      }, 409);
     }
 
     await db.delete(unitKerja).where(eq(unitKerja.id, id));

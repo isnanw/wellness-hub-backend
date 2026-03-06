@@ -752,7 +752,7 @@ async function seed() {
       type: "imunisasi" as const,
       district: "Ilaga",
       location: "Puskesmas Ilaga",
-      address: "Jl. Kesehatan No. 1, Ilaga",
+      address: "Jl. Anggrek Kampung Kimak, Ilaga",
       date: new Date("2024-01-26"),
       startTime: "08:00",
       endTime: "12:00",
@@ -908,7 +908,7 @@ async function seed() {
   console.log("Seeding general info...");
   const generalInfoData = [
     { id: generateId(), key: "hotline", value: "(0967) 123-456", label: "Nomor Hotline", category: "contact" },
-    { id: generateId(), key: "address", value: "Jl. Kesehatan No. 1, Ilaga, Kabupaten Puncak, Indonesia", label: "Alamat Kantor", category: "contact" },
+    { id: generateId(), key: "address", value: "Jl. Anggrek Kampung Kimak, Ilaga, Kabupaten Puncak, Papua Tengah", label: "Alamat Kantor", category: "contact" },
     { id: generateId(), key: "email", value: "dinkes@papua.go.id", label: "Email Resmi", category: "contact" },
     { id: generateId(), key: "working_hours_weekday", value: "08:00 - 16:00", label: "Jam Kerja (Senin-Jumat)", category: "general" },
     { id: generateId(), key: "emergency_call", value: "119", label: "Nomor Darurat", category: "contact" },
