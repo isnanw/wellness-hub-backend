@@ -9,7 +9,7 @@ const app = new Hono();
 app.get("/", async (c) => {
   try {
     const data = await db.select().from(generalInfo);
-    
+
     // Convert array to object for easier frontend consumption
     // { "hotline": "...", "address": "..." }
     const formattedData = data.reduce((acc, item) => {
@@ -24,22 +24,29 @@ app.get("/", async (c) => {
   }
 });
 
-// PUT update general info (bulk or single)
+// PUT update general info (bulk or single) — upsert
 app.put("/", async (c) => {
   try {
     const body = await c.req.json();
-    // body: { "hotline": "new number", "address": "new address" }
+    // body: { "hotline": "new number", "address": "new address", "hero_image": "/uploads/..." }
 
     const updates = Object.entries(body).map(async ([key, value]) => {
-      // Check if key exists
       const [existing] = await db.select().from(generalInfo).where(eq(generalInfo.key, key));
-      
+
       if (existing) {
         return db.update(generalInfo)
           .set({ value: String(value), updatedAt: new Date() })
           .where(eq(generalInfo.key, key));
+      } else {
+        // Insert new key if it doesn't exist
+        return db.insert(generalInfo).values({
+          id: crypto.randomUUID(),
+          key,
+          value: String(value),
+          label: key, // use key as label fallback
+          category: key.startsWith("hero_") ? "appearance" : "general",
+        });
       }
-      // Optional: Insert if not exists (if valid key logic is handled elsewhere)
     });
 
     await Promise.all(updates);

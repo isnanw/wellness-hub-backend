@@ -916,6 +916,11 @@ async function seed() {
     { id: generateId(), key: "instagram_url", value: "#", label: "Instagram URL", category: "social" },
     { id: generateId(), key: "twitter_url", value: "#", label: "Twitter URL", category: "social" },
     { id: generateId(), key: "youtube_url", value: "#", label: "YouTube URL", category: "social" },
+    // Hero section appearance settings
+    { id: generateId(), key: "hero_image", value: "", label: "Gambar Latar Hero", category: "appearance" },
+    { id: generateId(), key: "hero_title", value: "Wujudkan\nKabupaten Puncak Sehat\nBersama Kami", label: "Judul Hero Section", category: "appearance" },
+    { id: generateId(), key: "hero_subtitle", value: "Dinas Kesehatan Kabupaten Puncak berkomitmen memberikan pelayanan kesehatan berkualitas, terjangkau, dan merata untuk seluruh masyarakat Kabupaten Puncak dari Pegunungan hingga Pesisir.", label: "Deskripsi Hero Section", category: "appearance" },
+    { id: generateId(), key: "hero_badge", value: "Kabupaten Puncak Sehat, Kabupaten Puncak Maju", label: "Teks Badge Hero", category: "appearance" },
   ];
   await db.insert(generalInfo).values(generalInfoData);
 
